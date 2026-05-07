@@ -29,10 +29,10 @@ export default function WelcomePage() {
           </h1>
 
           <p
-            className="welcome-fade mt-5 text-[15px] leading-[1.5] text-ink2 max-w-[300px]"
+            className="welcome-fade mt-5 text-[15px] leading-[1.5] text-ink2"
             style={{ animationDelay: "340ms" }}
           >
-            Land in any city. See the owners <em className="not-italic text-ink font-semibold">most likely thinking about an exit</em>.
+            Land in any city. See the owners <em className="not-italic text-ink font-semibold whitespace-nowrap">most likely thinking</em> about an exit.
             Walk in pitch-ready.
           </p>
 
