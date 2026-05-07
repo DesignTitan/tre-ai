@@ -20,31 +20,48 @@ export interface GeocodeHit {
   raw?: unknown;
 }
 
-export async function geocode(query: string): Promise<GeocodeHit | null> {
+async function nominatimSearch(query: string): Promise<Array<{
+  display_name: string;
+  lat: string;
+  lon: string;
+  addresstype?: string;
+  class?: string;
+  type?: string;
+}>> {
   const params = new URLSearchParams({
     q: query,
     format: "json",
     addressdetails: "1",
     limit: "1",
     "accept-language": "en",
+    countrycodes: "us,ca",
   });
   const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-    headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
-    cache: "force-cache",
-    next: { revalidate: 60 * 60 * 24 },
+    headers: {
+      "User-Agent": USER_AGENT,
+      Accept: "application/json",
+      Referer: "https://tre-ai.vercel.app",
+    },
+    cache: "no-store",
   });
-  if (!res.ok) return null;
-  const arr = (await res.json()) as Array<{
-    display_name: string;
-    lat: string;
-    lon: string;
-    addresstype?: string;
-    class?: string;
-    type?: string;
-  }>;
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function geocode(query: string): Promise<GeocodeHit | null> {
+  const trimmed = query.trim();
+  const candidates = [trimmed, trimmed.replace(/\s+/g, " ").replace(/,\s*/g, ", ")];
+  if (trimmed.includes(",")) {
+    candidates.push(trimmed.replace(/,\s*/g, " "));
+  }
+  const isZip = /^\d{5}(-\d{4})?$/.test(trimmed);
+  let arr: Awaited<ReturnType<typeof nominatimSearch>> = [];
+  for (const q of [...new Set(candidates)]) {
+    arr = await nominatimSearch(q);
+    if (arr.length) break;
+  }
   if (!arr.length) return null;
   const hit = arr[0];
-  const isZip = /^\d{5}(-\d{4})?$/.test(query.trim());
   const type: GeocodeHit["type"] = isZip
     ? "zip"
     : hit.addresstype === "city" || hit.addresstype === "town" || hit.addresstype === "village"

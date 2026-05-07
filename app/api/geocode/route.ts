@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { geocode } from "@/lib/crawl/sources";
 
 export const runtime = "nodejs";
-export const revalidate = 86400;
+export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);

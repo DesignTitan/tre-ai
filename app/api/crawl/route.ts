@@ -4,7 +4,7 @@ import { transformElements } from "@/lib/crawl/transform";
 import type { CrawlResult } from "@/lib/types";
 
 export const runtime = "nodejs";
-export const revalidate = 21600;
+export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 function slugifyQuery(q: string): string {
