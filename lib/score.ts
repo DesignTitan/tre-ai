@@ -27,7 +27,7 @@ const INDUSTRY_TAILWIND: Record<string, number> = {
 
 export function exitReadinessScore(p: Prospect): number {
   let score = 0;
-  const age = new Date().getFullYear() - p.founded;
+  const age = p.founded ? new Date().getFullYear() - p.founded : 0;
 
   // Tenure
   if (age >= 50) score += 25;

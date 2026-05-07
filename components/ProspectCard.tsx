@@ -30,8 +30,12 @@ export function ProspectCard({ prospect }: { prospect: Prospect }) {
           />
           <div className="text-[11px] text-mute mt-0.5">
             <em className="not-italic text-ink2 font-medium">{prospect.industry}</em>
-            <span> · </span>
-            <em className="not-italic text-ink2 font-medium">est. {prospect.founded} · {yearsSince(prospect.founded)} yrs</em>
+            {prospect.founded ? (
+              <>
+                <span> · </span>
+                <em className="not-italic text-ink2 font-medium">est. {prospect.founded} · {yearsSince(prospect.founded)} yrs</em>
+              </>
+            ) : null}
           </div>
         </div>
       </div>
@@ -54,6 +58,9 @@ export function ProspectCard({ prospect }: { prospect: Prospect }) {
           )}
           {prospect.tags?.includes("pe-tailwind") && (
             <span className="text-[10px] bg-gold/[.15] text-[#8A6A1F] px-[7px] py-[2px] rounded font-semibold tracking-[.04em] uppercase">PE tailwind</span>
+          )}
+          {prospect.provisional && (
+            <span className="text-[10px] bg-black/[.06] text-mute px-[7px] py-[2px] rounded font-semibold tracking-[.04em] uppercase">Provisional</span>
           )}
         </span>
         {prospect.distanceMi !== undefined && (

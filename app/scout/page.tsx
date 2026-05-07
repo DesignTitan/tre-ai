@@ -1,47 +1,100 @@
 "use client";
-import { useState, useMemo, Suspense } from "react";
+import { useEffect, useMemo, useRef, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { rankedProspects } from "@/lib/data/prospects";
-import { AREAS } from "@/lib/data/areas";
+import dynamic from "next/dynamic";
 import { ProspectCard } from "@/components/ProspectCard";
+import { cacheCrawledProspects } from "@/lib/data/cache";
 import { cx } from "@/lib/utils";
-import type { AreaSlug } from "@/lib/types";
+import type { CrawlResult, Prospect } from "@/lib/types";
+
+const MapView = dynamic(() => import("@/components/MapView").then(m => m.MapView), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-[#E8E2D6] text-[11px] text-mute font-semibold tracking-[.1em] uppercase">
+      Loading map…
+    </div>
+  ),
+});
+
+type ViewMode = "split" | "map" | "list";
 
 function ScoutInner() {
   const params = useSearchParams();
-  const range = params?.get("range") ?? "25";
-  const areasParam = params?.get("areas")?.split(",") ?? AREAS.map(a => a.slug);
-  const includedAreas = new Set(areasParam);
+  const q = params?.get("q") ?? "";
+  const radius = Math.max(1, Math.min(50, Number(params?.get("radius") ?? "10")));
 
-  const [activeArea, setActiveArea] = useState<string>("all");
-  const [filters, setFilters] = useState<Record<string, boolean>>({
-    "exit-ready": true, trades: false, mfg: false, "owner-led": false,
-  });
+  const [data, setData] = useState<CrawlResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [view, setView] = useState<ViewMode>("split");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  const baseList = useMemo(
-    () => rankedProspects().filter(p => includedAreas.has(p.area)),
-    [includedAreas] // intentionally depends on the set's identity per render
-  );
-  const visibleList = useMemo(
-    () => activeArea === "all" ? baseList : baseList.filter(p => p.area === activeArea),
-    [activeArea, baseList]
-  );
+  useEffect(() => {
+    if (!q) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setData(null);
+    setSelectedId(null);
+    fetch(`/api/crawl?q=${encodeURIComponent(q)}&radius=${radius}`)
+      .then(async (r) => {
+        if (!r.ok) throw new Error((await r.json()).error ?? "crawl failed");
+        return (await r.json()) as CrawlResult;
+      })
+      .then((d) => {
+        if (cancelled) return;
+        cacheCrawledProspects(d.prospects);
+        setData(d);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : "crawl failed");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [q, radius]);
 
-  const visibleAreas = AREAS.filter(a => includedAreas.has(a.slug));
-  const totalCount = baseList.length;
+  const prospects = data?.prospects ?? [];
+  const placeName = useMemo(() => {
+    if (!data) return q || "Trip";
+    const parts = data.location.displayName.split(",").map(s => s.trim());
+    if (data.location.type === "zip") return `${data.location.query} · ${parts[1] ?? parts[0]}`;
+    return parts.slice(0, 2).join(", ");
+  }, [data, q]);
+
+  function selectProspect(id: string) {
+    setSelectedId(id);
+    const el = cardRefs.current.get(id);
+    el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  if (!q) {
+    return (
+      <div className="px-6 py-12 text-center">
+        <p className="text-mute text-sm">No trip yet.</p>
+        <Link href="/plan" className="inline-block mt-4 text-accent text-sm font-semibold">Start a trip ›</Link>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      {/* Trip banner */}
-      <div className="px-6 pt-3 pb-3.5 flex justify-between items-start gap-3 border-b border-rule">
-        <div>
-          <div className="text-[11px] text-accent font-semibold tracking-cadence uppercase">📍 Detroit Trip</div>
-          <h2 className="text-[24px] font-semibold tracking-tightx mt-0.5 leading-[1.05]">
-            {totalCount} prospects
+    <div className="flex flex-col h-full">
+      <div className="px-6 pt-3 pb-3 flex justify-between items-start gap-3 border-b border-rule">
+        <div className="min-w-0 flex-1">
+          <div className="text-[11px] text-accent font-semibold tracking-cadence uppercase truncate">
+            {placeName} Trip
+          </div>
+          <h2 className="text-[22px] font-semibold tracking-tightx mt-0.5 leading-[1.05]">
+            {loading ? "Crawling…" : `${prospects.length} prospects`}
           </h2>
-          <div className="text-[12px] text-mute mt-1">
-            <b className="text-ink font-semibold">{range} mi</b> · {visibleAreas.length} areas · day 1
+          <div className="text-[12px] text-mute mt-0.5">
+            <b className="text-ink font-semibold">{radius} mi</b>
+            {data && <> · scanned {data.totalRaw} POIs · kept {data.filtered}</>}
           </div>
         </div>
         <Link
@@ -52,73 +105,148 @@ function ScoutInner() {
         </Link>
       </div>
 
-      {/* Area strip */}
-      <div className="px-6 py-2.5 flex gap-1.5 overflow-x-auto no-scrollbar border-b border-rule">
-        <AreaPill onClick={() => setActiveArea("all")} active={activeArea === "all"} name="All" count={`${totalCount} prospects`} />
-        {visibleAreas.map(a => (
-          <AreaPill
-            key={a.slug}
-            onClick={() => setActiveArea(a.slug)}
-            active={activeArea === a.slug}
-            name={a.shortName ?? a.name}
-            count={String(a.count)}
-          />
-        ))}
-      </div>
-
-      {/* Filter chips */}
-      <div className="px-6 py-2.5 flex gap-1.5 flex-wrap">
-        {[
-          { key: "exit-ready", label: "Exit-ready" },
-          { key: "trades",     label: "Trades" },
-          { key: "mfg",        label: "Mfg" },
-          { key: "owner-led",  label: "Owner-led" },
-        ].map(f => (
+      <div className="px-6 py-2 flex gap-1.5 border-b border-rule">
+        {([
+          { key: "split", label: "Split" },
+          { key: "map", label: "Map" },
+          { key: "list", label: "List" },
+        ] as { key: ViewMode; label: string }[]).map(opt => (
           <button
-            key={f.key}
-            onClick={() => setFilters(s => ({ ...s, [f.key]: !s[f.key] }))}
+            key={opt.key}
+            onClick={() => setView(opt.key)}
             className={cx(
-              "text-[11px] rounded-full px-2.5 py-1.5 font-medium border transition-colors active:scale-[.95]",
-              filters[f.key]
-                ? "bg-ink text-white border-ink"
-                : "bg-card text-ink2 border-rule"
+              "text-[11px] rounded-full px-3 py-1.5 font-semibold border transition-colors active:scale-[.95]",
+              view === opt.key ? "bg-ink text-white border-ink" : "bg-card text-ink2 border-rule"
             )}
           >
-            {f.label}
+            {opt.label}
           </button>
         ))}
       </div>
 
-      {/* Feed */}
-      <div className="px-6 pb-3 flex flex-col gap-2.5">
-        <div className="text-[11px] uppercase tracking-[.1em] text-mute font-semibold mt-1.5 flex justify-between items-center">
-          <span>Top of the list</span>
-          <span className="text-mute font-medium normal-case tracking-normal">{visibleList.length} real businesses</span>
+      {error && (
+        <div className="px-6 py-4 text-[13px] text-red font-medium">
+          Crawl failed: {error}
         </div>
-        {visibleList.map(p => (
-          <ProspectCard key={p.id} prospect={p} />
-        ))}
-      </div>
+      )}
+
+      {loading && (
+        <div className="px-6 py-8 text-center text-mute text-[13px]">
+          <div className="inline-block w-5 h-5 border-2 border-ink/20 border-t-ink rounded-full animate-spin mb-2" />
+          <div>Querying OpenStreetMap…</div>
+          <div className="text-[11px] mt-1 opacity-70">First crawl of a city can take 5–15 seconds</div>
+        </div>
+      )}
+
+      {data && !loading && (
+        <div className="flex-1 flex flex-col min-h-0">
+          {view !== "list" && (
+            <div className={cx("relative", view === "map" ? "flex-1" : "h-[260px] flex-none")}>
+              <MapView
+                centerLat={data.location.lat}
+                centerLng={data.location.lng}
+                radiusMi={data.radiusMi}
+                prospects={prospects}
+                selectedId={selectedId}
+                onSelect={selectProspect}
+                className="h-full w-full"
+              />
+            </div>
+          )}
+
+          {view !== "map" && (
+            <div className="flex-1 overflow-y-auto px-6 pt-3 pb-6 flex flex-col gap-2.5">
+              <div className="text-[11px] uppercase tracking-[.1em] text-mute font-semibold flex justify-between items-center sticky top-0 bg-paper py-1.5 -mt-1.5">
+                <span>Top of the list</span>
+                <span className="text-mute font-medium normal-case tracking-normal">
+                  {prospects.length} crawled
+                </span>
+              </div>
+              {prospects.length === 0 ? (
+                <div className="text-mute text-[13px] py-6 text-center">
+                  No prospects matched in this radius. Try widening the radius or another city.
+                </div>
+              ) : (
+                prospects.map(p => (
+                  <CardSlot
+                    key={p.id}
+                    prospect={p}
+                    selected={selectedId === p.id}
+                    onSelect={selectProspect}
+                    setRef={(el) => {
+                      if (el) cardRefs.current.set(p.id, el);
+                      else cardRefs.current.delete(p.id);
+                    }}
+                  />
+                ))
+              )}
+            </div>
+          )}
+
+          {view === "map" && selectedId && (
+            <SelectedSheet
+              prospect={prospects.find(p => p.id === selectedId)!}
+              onClose={() => setSelectedId(null)}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-function AreaPill({ onClick, active, name, count }: { onClick: () => void; active: boolean; name: string; count: string }) {
+function CardSlot({
+  prospect,
+  selected,
+  onSelect,
+  setRef,
+}: {
+  prospect: Prospect;
+  selected: boolean;
+  onSelect: (id: string) => void;
+  setRef: (el: HTMLDivElement | null) => void;
+}) {
   return (
-    <button
-      onClick={onClick}
+    <div
+      ref={setRef}
+      onMouseEnter={() => onSelect(prospect.id)}
+      onClick={() => onSelect(prospect.id)}
       className={cx(
-        "flex-none rounded-xl px-3 py-2 text-left border transition-colors active:scale-[.95]",
-        active ? "bg-ink border-ink" : "bg-card border-rule"
+        "rounded-2xl transition-shadow",
+        selected ? "ring-2 ring-ink shadow-lg" : ""
       )}
     >
-      <div className={cx("text-[11px] font-semibold tracking-tight2", active ? "text-white" : "text-ink")}>
-        {name}
+      <ProspectCard prospect={prospect} />
+    </div>
+  );
+}
+
+function SelectedSheet({ prospect, onClose }: { prospect: Prospect; onClose: () => void }) {
+  return (
+    <div className="absolute bottom-16 left-0 right-0 px-3 z-[1000] pointer-events-none">
+      <div className="pointer-events-auto bg-card/95 backdrop-blur border border-rule rounded-2xl shadow-cta p-3 flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="text-[10px] text-mute font-semibold tracking-[.04em] uppercase">{prospect.industry}</div>
+          <h4 className="text-[14px] font-semibold tracking-tight2 leading-tight truncate">{prospect.name}</h4>
+          {prospect.address && (
+            <div className="text-[11px] text-mute mt-0.5 truncate">{prospect.address}</div>
+          )}
+        </div>
+        <Link
+          href={`/prospect/${prospect.id}`}
+          className="text-[11px] font-semibold text-accent tracking-[.04em] uppercase bg-accent/[.08] px-2.5 py-1.5 rounded-full whitespace-nowrap"
+        >
+          Open
+        </Link>
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="text-[11px] text-mute font-semibold px-2 py-1.5"
+        >
+          ×
+        </button>
       </div>
-      <div className={cx("text-[10px] font-medium mt-px", active ? "text-white/70" : "text-mute")}>
-        {count}
-      </div>
-    </button>
+    </div>
   );
 }
 
