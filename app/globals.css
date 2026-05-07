@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* tre.ai global theme — locked. */
+:root {
+  --bg: 244 241 236;
+  --ink: 16 20 24;
+  --accent: 31 78 95;
+  --rule: 225 220 210;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0;
+  background: #F4F1EC;
+  color: #101418;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hide scrollbars on phone-internal scrolling areas. */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* Score ring — conic gradient progress arc.
+   Set --s (0-100) on the element to drive the fill amount. */
+.scoredot,
+.score-ring {
+  background: conic-gradient(#3F8160 0 calc(var(--s, 0) * 1%), rgba(0,0,0,.08) 0);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+.scoredot::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: #0E1316;
+}
+.scoredot > * {
+  position: relative;
+  z-index: 1;
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.02em;
+}
+
+.score-ring::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: #F4F1EC;
+}
+.score-ring > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* "Why this one" bullets — render b tags from renderInlineBold(). */
+.why b { color: #101418; font-weight: 600; }
+
+/* Status-bar icons */
+.icon-wifi { display:inline-block; width:13px; height:9px; background:#101418; clip-path:polygon(0 100%,50% 30%,100% 100%); }
+.icon-bat  { display:inline-block; width:22px; height:10px; border:1px solid #101418; border-radius:2px; position:relative; }
+.icon-bat::after { content:""; position:absolute; top:2px; left:1px; bottom:2px; width:80%; background:#101418; border-radius:1px; }
+
+/* Pages slide in subtly when navigating */
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.screen-enter {
+  animation: slide-in .26s cubic-bezier(.32,.72,0,1);
+}
