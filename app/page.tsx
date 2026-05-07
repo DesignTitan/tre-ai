@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function WelcomePage() {
   return (
-    <div className="relative h-full flex flex-col">
+    <div className="relative h-full min-h-svh sm:min-h-0 flex flex-col">
       <div className="welcome-bg" aria-hidden />
 
       <div className="flex-1 flex flex-col px-7 pt-10 pb-10 relative z-10">

@@ -33,7 +33,8 @@ export function TabBar() {
       className="
         absolute bottom-0 left-0 right-0
         flex justify-around
-        pt-2.5 pb-6
+        pt-2.5
+        pb-[max(1.5rem,env(safe-area-inset-bottom))]
         border-t border-rule
         bg-bg/90 backdrop-blur
         z-30

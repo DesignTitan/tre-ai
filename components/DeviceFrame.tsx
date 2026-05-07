@@ -7,7 +7,7 @@ export function DeviceFrame({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="
-        min-h-screen min-h-dvh
+        min-h-screen min-h-svh
         flex items-center justify-center
         p-0 sm:p-6
         bg-bg
@@ -33,7 +33,7 @@ export function DeviceFrame({ children }: { children: React.ReactNode }) {
       <div
         className="
           relative flex-none
-          w-screen h-screen h-dvh sm:w-[380px] sm:h-[780px]
+          w-screen h-screen h-svh sm:w-[380px] sm:h-[780px]
           rounded-none sm:rounded-[50px]
           bg-[#0B0E11] sm:p-2.5
           shadow-none sm:shadow-device
