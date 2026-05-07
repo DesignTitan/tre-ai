@@ -37,7 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans">
         <DeviceFrame>
           <StatusBar />
-          <main className="flex-1 overflow-y-auto no-scrollbar pb-24 sm:pb-20 pt-[env(safe-area-inset-top)] sm:pt-0 screen-enter">
+          <main className="flex-1 overflow-y-auto no-scrollbar pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-20 pt-[env(safe-area-inset-top)] sm:pt-0 screen-enter">
             {children}
           </main>
           <TabBar />
