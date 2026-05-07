@@ -27,6 +27,7 @@ const TABS: Tab[] = [
 
 export function TabBar() {
   const pathname = usePathname() ?? "";
+  if (pathname === "/") return null;
   return (
     <nav
       className="

@@ -79,3 +79,40 @@ html, body {
 .screen-enter {
   animation: slide-in .26s cubic-bezier(.32,.72,0,1);
 }
+
+/* Welcome screen — staggered fade-up + radar pulse */
+@keyframes welcome-fade {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.welcome-fade {
+  opacity: 0;
+  animation: welcome-fade .7s cubic-bezier(.32,.72,0,1) both;
+}
+
+@keyframes welcome-pulse {
+  0%   { transform: scale(1);  opacity: 0; }
+  10%  { opacity: 0.55; }
+  100% { transform: scale(9);  opacity: 0; }
+}
+.welcome-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: welcome-pulse 4.5s ease-out infinite;
+}
+
+.welcome-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% 22%, rgba(31,78,95,.06) 0%, transparent 70%),
+    radial-gradient(circle at 1px 1px, rgba(16,20,24,.05) 1px, transparent 0);
+  background-size: 100% 100%, 22px 22px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-fade { animation: none; opacity: 1; transform: none; }
+  .welcome-pulse { animation: none; opacity: 0; }
+  .screen-enter { animation: none; }
+}
