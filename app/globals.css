@@ -66,11 +66,6 @@ html, body {
 /* "Why this one" bullets — render b tags from renderInlineBold(). */
 .why b { color: #101418; font-weight: 600; }
 
-/* Status-bar icons */
-.icon-wifi { display:inline-block; width:13px; height:9px; background:#101418; clip-path:polygon(0 100%,50% 30%,100% 100%); }
-.icon-bat  { display:inline-block; width:22px; height:10px; border:1px solid #101418; border-radius:2px; position:relative; }
-.icon-bat::after { content:""; position:absolute; top:2px; left:1px; bottom:2px; width:80%; background:#101418; border-radius:1px; }
-
 /* Pages slide in subtly when navigating */
 @keyframes slide-in {
   from { opacity: 0; transform: translateX(20px); }
