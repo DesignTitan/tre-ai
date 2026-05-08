@@ -108,17 +108,22 @@ export default function PlanTripPage() {
   }
 
   return (
-    <div>
+    <div className="absolute inset-0 flex flex-col">
       {nudge.shouldShow && <InstallNudge onContinue={nudge.dismiss} />}
-      <div className="px-6 pt-3.5 pb-0.5">
-        <div className="text-[11px] text-accent font-semibold tracking-cadence uppercase">New trip</div>
-        <h2 className="text-[30px] font-semibold tracking-tighter mt-1 leading-[1.05]">
-          Where are you<br />headed?
-        </h2>
-        <p className="text-[13px] text-mute mt-1.5">Drop a city or ZIP. We&apos;ll crawl the area and surface owners likely thinking about an exit.</p>
-      </div>
 
-      <form onSubmit={startTrip} className="px-6 mt-4.5">
+      <form
+        onSubmit={startTrip}
+        className="flex-1 overflow-y-auto px-6 pt-[calc(0.875rem+env(safe-area-inset-top))] sm:pt-14 pb-3"
+      >
+        <div className="pb-0.5">
+          <div className="text-[11px] text-accent font-semibold tracking-cadence uppercase">New trip</div>
+          <h2 className="text-[30px] font-semibold tracking-tighter mt-1 leading-[1.05]">
+            Where are you<br />headed?
+          </h2>
+          <p className="text-[13px] text-mute mt-1.5">Drop a city or ZIP. We&apos;ll crawl the area and surface owners likely thinking about an exit.</p>
+        </div>
+
+        <div className="mt-4.5">
         <div className="relative">
           <label className="block">
             <span className="sr-only">City or ZIP</span>
@@ -257,7 +262,7 @@ export default function PlanTripPage() {
           </div>
         </div>
 
-        <div className="mt-5 mb-6 rounded-2xl border border-rule bg-card/60 p-3.5">
+        <div className="mt-5 rounded-2xl border border-rule bg-card/60 p-3.5">
           <div className="text-[11px] text-mute font-semibold tracking-[.1em] uppercase mb-1.5">What gets crawled</div>
           <ul className="text-[12px] text-ink2 leading-[1.45] space-y-1">
             <li>· OpenStreetMap business POIs in the radius (skilled trades, manufacturing, professional services)</li>
@@ -265,22 +270,32 @@ export default function PlanTripPage() {
             <li>· Score model is provisional — owner & succession data fills in once enrichment ships</li>
           </ul>
         </div>
+        </div>
+      </form>
 
+      <div className="
+        flex-none
+        px-6 pt-3
+        pb-[calc(0.75rem+env(safe-area-inset-bottom)+4rem)]
+        sm:pb-[calc(0.75rem+5rem)]
+        bg-bg/95 backdrop-blur
+        border-t border-rule
+      ">
         <button
-          type="submit"
+          type="button"
+          onClick={() => startTrip()}
           disabled={busy}
           className="
             w-full bg-ink text-white rounded-2xl p-4
             flex justify-between items-center font-semibold
             shadow-cta active:scale-[.98] transition-transform
             disabled:opacity-60 disabled:scale-100
-            mb-10
           "
         >
           <span className="text-[15px] tracking-tight2">{busy ? "Locating…" : "Start trip"}</span>
           <span className="text-[11px] opacity-70 font-medium">{range}mi radius</span>
         </button>
-      </form>
+      </div>
     </div>
   );
 }
