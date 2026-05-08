@@ -255,6 +255,8 @@ function SelectedSheet({ prospect, onClose }: { prospect: Prospect; onClose: () 
   );
 }
 
+const SNAP_POINTS = [25, 58, 88]; // collapsed / default / expanded
+
 function SplitSheet({
   radius,
   nearest,
@@ -270,26 +272,81 @@ function SplitSheet({
   onSelect: (id: string) => void;
   cardRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [heightPct, setHeightPct] = useState(58);
+  const [dragging, setDragging] = useState(false);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ startY: number; startPct: number; containerH: number; moved: number } | null>(null);
+
+  function onPointerDown(e: React.PointerEvent) {
+    const container = sheetRef.current?.parentElement;
+    if (!container) return;
+    dragRef.current = {
+      startY: e.clientY,
+      startPct: heightPct,
+      containerH: container.clientHeight,
+      moved: 0,
+    };
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    setDragging(true);
+  }
+
+  function onPointerMove(e: React.PointerEvent) {
+    const d = dragRef.current;
+    if (!d) return;
+    const dy = e.clientY - d.startY;
+    d.moved = Math.max(d.moved, Math.abs(dy));
+    // Drag up (negative dy) → sheet grows (more list).
+    // Drag down (positive dy) → sheet shrinks (more map).
+    const next = d.startPct - (dy / d.containerH) * 100;
+    setHeightPct(Math.max(12, Math.min(95, next)));
+  }
+
+  function onPointerUp() {
+    const d = dragRef.current;
+    setDragging(false);
+    dragRef.current = null;
+    if (!d) return;
+    // Tap (no real drag) → cycle to next snap point.
+    if (d.moved < 6) {
+      const idx = SNAP_POINTS.findIndex(p => p === d.startPct);
+      const nextIdx = idx === -1 ? 1 : (idx + 1) % SNAP_POINTS.length;
+      setHeightPct(SNAP_POINTS[nextIdx]);
+      return;
+    }
+    // Snap to nearest rest position.
+    const closest = SNAP_POINTS.reduce((best, p) =>
+      Math.abs(p - heightPct) < Math.abs(best - heightPct) ? p : best
+    );
+    setHeightPct(closest);
+  }
+
   return (
     <div
+      ref={sheetRef}
       className={cx(
         "absolute left-0 right-0 bottom-0 z-[1000]",
         "bg-bg rounded-t-3xl",
         "shadow-[0_-12px_30px_rgba(16,20,24,0.12)]",
         "flex flex-col",
-        "transition-[height] duration-300 ease-out",
-        expanded ? "h-[88%]" : "h-[58%]"
+        dragging ? "" : "transition-[height] duration-300 ease-out"
       )}
+      style={{ height: `${heightPct}%` }}
     >
-      <button
-        type="button"
-        onClick={() => setExpanded(e => !e)}
-        aria-label={expanded ? "Collapse sheet" : "Expand sheet"}
-        className="flex justify-center pt-2 pb-1 -mb-1 active:scale-[.97] transition-transform"
+      <div
+        role="separator"
+        aria-label="Drag to resize sheet"
+        aria-valuenow={Math.round(heightPct)}
+        aria-valuemin={12}
+        aria-valuemax={95}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        className="flex justify-center pt-2.5 pb-2 -mb-1 cursor-grab active:cursor-grabbing select-none touch-none"
+        style={{ WebkitUserSelect: "none" }}
       >
-        <span className="block w-10 h-1 bg-ink/15 rounded-full" />
-      </button>
+        <span className="block w-10 h-1 bg-ink/15 rounded-full pointer-events-none" />
+      </div>
 
       <div className="px-6 pt-1 pb-2 flex items-baseline justify-between gap-3">
         <h3 className="text-[20px] font-semibold tracking-tightx text-ink leading-tight">
