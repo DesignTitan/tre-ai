@@ -154,9 +154,42 @@ export async function suggestPlaces(query: string, limit = 6): Promise<PlaceSugg
   return out;
 }
 
+async function zippopotamLookup(zip: string): Promise<GeocodeHit | null> {
+  // Zippopotam.us — free, no auth, no rate limit, US ZIPs only. Reliable
+  // backstop for queries like "06105" where Nominatim's Vercel-runtime IP
+  // gets rate-limited and Photon's prefix matcher prefers non-US zips.
+  const code = zip.split("-")[0];
+  const res = await fetch(`https://api.zippopotam.us/us/${code}`, {
+    headers: { Accept: "application/json", "User-Agent": USER_AGENT },
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  const data = (await res.json()) as {
+    "post code"?: string;
+    places?: Array<{ "place name"?: string; latitude?: string; longitude?: string; "state abbreviation"?: string }>;
+  };
+  const place = data.places?.[0];
+  if (!place || !place.latitude || !place.longitude) return null;
+  return {
+    displayName: `${data["post code"] ?? code}, ${place["place name"]}, ${place["state abbreviation"]}, United States`,
+    lat: Number(place.latitude),
+    lng: Number(place.longitude),
+    type: "zip",
+  };
+}
+
 export async function geocode(query: string): Promise<GeocodeHit | null> {
   const trimmed = query.trim();
   const isZip = /^\d{5}(-\d{4})?$/.test(trimmed);
+
+  // ZIP-shaped queries: Zippopotam.us first (single source of truth for US ZIPs,
+  // no rate limit). Saves us from Nominatim's countrycodes flake AND Photon's
+  // tendency to surface Spanish/Lithuanian zips before US ones.
+  if (isZip) {
+    const zip = await zippopotamLookup(trimmed);
+    if (zip) return zip;
+  }
+
   const candidates = [trimmed, trimmed.replace(/\s+/g, " ").replace(/,\s*/g, ", ")];
   if (trimmed.includes(",")) {
     candidates.push(trimmed.replace(/,\s*/g, " "));
