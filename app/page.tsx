@@ -6,7 +6,7 @@ export default function WelcomePage() {
     <div className="absolute inset-0 overflow-hidden flex flex-col">
       <div className="welcome-bg" aria-hidden />
 
-      <div className="h-svh flex flex-col px-7 pt-[calc(2.5rem+env(safe-area-inset-top))] pb-[calc(2.5rem+env(safe-area-inset-bottom))] relative z-10">
+      <div className="h-svh flex flex-col px-7 pt-[calc(2.5rem+env(safe-area-inset-top))] sm:pt-14 pb-[calc(2.5rem+env(safe-area-inset-bottom))] relative z-10">
         <div className="welcome-fade" style={{ animationDelay: "0ms" }}>
           <span className="inline-flex items-center gap-2 text-[10px] font-semibold tracking-cadence uppercase text-mute">
             <span className="w-[5px] h-[5px] rounded-full bg-accent inline-block" />
