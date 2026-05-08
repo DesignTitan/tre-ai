@@ -20,19 +20,20 @@ export interface GeocodeHit {
   raw?: unknown;
 }
 
-async function nominatimSearch(query: string): Promise<Array<{
+async function nominatimSearch(query: string, limit = 1): Promise<Array<{
   display_name: string;
   lat: string;
   lon: string;
   addresstype?: string;
   class?: string;
   type?: string;
+  address?: { city?: string; town?: string; village?: string; state?: string; postcode?: string; country_code?: string };
 }>> {
   const params = new URLSearchParams({
     q: query,
     format: "json",
     addressdetails: "1",
-    limit: "1",
+    limit: String(limit),
     "accept-language": "en",
     countrycodes: "us,ca",
   });
@@ -46,6 +47,108 @@ async function nominatimSearch(query: string): Promise<Array<{
   });
   if (!res.ok) return [];
   return res.json();
+}
+
+export interface PlaceSuggestion {
+  title: string;
+  subtitle: string;
+  query: string;
+  lat: number;
+  lng: number;
+  type: GeocodeHit["type"];
+}
+
+const STATE_ABBR: Record<string, string> = {
+  Alabama: "AL", Alaska: "AK", Arizona: "AZ", Arkansas: "AR", California: "CA",
+  Colorado: "CO", Connecticut: "CT", Delaware: "DE", Florida: "FL", Georgia: "GA",
+  Hawaii: "HI", Idaho: "ID", Illinois: "IL", Indiana: "IN", Iowa: "IA",
+  Kansas: "KS", Kentucky: "KY", Louisiana: "LA", Maine: "ME", Maryland: "MD",
+  Massachusetts: "MA", Michigan: "MI", Minnesota: "MN", Mississippi: "MS", Missouri: "MO",
+  Montana: "MT", Nebraska: "NE", Nevada: "NV", "New Hampshire": "NH", "New Jersey": "NJ",
+  "New Mexico": "NM", "New York": "NY", "North Carolina": "NC", "North Dakota": "ND",
+  Ohio: "OH", Oklahoma: "OK", Oregon: "OR", Pennsylvania: "PA", "Rhode Island": "RI",
+  "South Carolina": "SC", "South Dakota": "SD", Tennessee: "TN", Texas: "TX", Utah: "UT",
+  Vermont: "VT", Virginia: "VA", Washington: "WA", "West Virginia": "WV", Wisconsin: "WI",
+  Wyoming: "WY", "District of Columbia": "DC",
+  Ontario: "ON", Quebec: "QC", "British Columbia": "BC", Alberta: "AB",
+  Manitoba: "MB", Saskatchewan: "SK", "Nova Scotia": "NS", "New Brunswick": "NB",
+  "Newfoundland and Labrador": "NL", "Prince Edward Island": "PE",
+};
+
+interface PhotonProps {
+  name?: string;
+  osm_value?: string;
+  osm_key?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  countrycode?: string;
+  postcode?: string;
+  county?: string;
+}
+
+const PLACE_TYPES = new Set(["city", "town", "village", "hamlet", "suburb", "postcode", "neighbourhood"]);
+
+export async function suggestPlaces(query: string, limit = 6): Promise<PlaceSuggestion[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 2) return [];
+  const params = new URLSearchParams({
+    q: trimmed,
+    limit: String(Math.min(limit * 3, 20)),
+    lang: "en",
+  });
+  const res = await fetch(`https://photon.komoot.io/api/?${params}`, {
+    headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
+    cache: "no-store",
+  });
+  if (!res.ok) return [];
+  const data = (await res.json()) as { features?: Array<{ properties?: PhotonProps; geometry?: { coordinates?: [number, number] } }> };
+  const features = data.features ?? [];
+  const out: PlaceSuggestion[] = [];
+  const seen = new Set<string>();
+  for (const f of features) {
+    const p = f.properties ?? {};
+    const cc = p.countrycode;
+    if (cc !== "US" && cc !== "CA") continue;
+    const osmVal = p.osm_value ?? "";
+    if (!PLACE_TYPES.has(osmVal)) continue;
+    const coords = f.geometry?.coordinates;
+    if (!coords || coords.length < 2) continue;
+    const [lng, lat] = coords;
+    const isZip = osmVal === "postcode";
+    const stateAbbr = p.state ? (STATE_ABBR[p.state] ?? p.state) : "";
+    let title: string;
+    let subtitle: string;
+    let queryStr: string;
+    if (isZip) {
+      const place = p.city ?? p.county ?? "";
+      title = `${p.name} · ${place}${stateAbbr ? `, ${stateAbbr}` : ""}`.trim();
+      subtitle = `ZIP${p.country ? ` · ${p.country}` : ""}`;
+      queryStr = String(p.name);
+    } else {
+      const placeName = p.name ?? "";
+      title = stateAbbr ? `${placeName}, ${stateAbbr}` : placeName;
+      const subParts: string[] = [];
+      if (p.county && p.county !== placeName) subParts.push(p.county);
+      if (cc === "CA") subParts.push("Canada");
+      subtitle = subParts.join(" · ");
+      queryStr = title;
+    }
+    if (!title) continue;
+    const dedupeKey = title.toLowerCase();
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+    out.push({
+      title,
+      subtitle,
+      query: queryStr,
+      lat,
+      lng,
+      type: isZip ? "zip" : (osmVal === "city" || osmVal === "town" || osmVal === "village" ? "city" : "address"),
+    });
+    if (out.length >= limit) break;
+  }
+  return out;
 }
 
 export async function geocode(query: string): Promise<GeocodeHit | null> {

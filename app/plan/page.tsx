@@ -1,7 +1,8 @@
 "use client";
-import { useState, FormEvent } from "react";
+import { useState, useEffect, useRef, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { cx } from "@/lib/utils";
+import type { PlaceSuggestion } from "@/lib/crawl/sources";
 
 const RANGE_OPTIONS = [5, 10, 25, 50];
 const QUICK_PICKS = [
@@ -18,10 +19,49 @@ export default function PlanTripPage() {
   const [range, setRange] = useState(10);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const lastFetchedRef = useRef<string>("");
+  const skipNextFetchRef = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  async function startTrip(e?: FormEvent) {
-    e?.preventDefault();
+  useEffect(() => {
+    if (skipNextFetchRef.current) {
+      skipNextFetchRef.current = false;
+      return;
+    }
     const q = query.trim();
+    if (q.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    const handle = setTimeout(async () => {
+      if (lastFetchedRef.current === q) return;
+      lastFetchedRef.current = q;
+      try {
+        const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`);
+        if (!res.ok) return;
+        const data = (await res.json()) as { suggestions?: PlaceSuggestion[] };
+        if (lastFetchedRef.current !== q) return;
+        setSuggestions(data.suggestions ?? []);
+        setActiveIndex(-1);
+      } catch {
+        // typing fast can race; the next keystroke retries
+      }
+    }, 220);
+    return () => clearTimeout(handle);
+  }, [query]);
+
+  function chooseSuggestion(s: PlaceSuggestion) {
+    skipNextFetchRef.current = true;
+    setQuery(s.query);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    void startTripWith(s.query);
+  }
+
+  async function startTripWith(q: string) {
     if (!q) {
       setError("Enter a city or ZIP code.");
       return;
@@ -43,6 +83,28 @@ export default function PlanTripPage() {
     }
   }
 
+  function startTrip(e?: FormEvent) {
+    e?.preventDefault();
+    void startTripWith(query.trim());
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!showSuggestions || suggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.min(i + 1, suggestions.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.max(i - 1, -1));
+    } else if (e.key === "Enter" && activeIndex >= 0) {
+      e.preventDefault();
+      chooseSuggestion(suggestions[activeIndex]);
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+      setActiveIndex(-1);
+    }
+  }
+
   return (
     <div>
       <div className="px-6 pt-3.5 pb-0.5">
@@ -54,26 +116,93 @@ export default function PlanTripPage() {
       </div>
 
       <form onSubmit={startTrip} className="px-6 mt-4.5">
-        <label className="block">
-          <span className="sr-only">City or ZIP</span>
-          <div className="bg-card border border-rule rounded-2xl px-4 py-3.5 flex items-center gap-3 focus-within:border-ink transition-colors">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="flex-none text-accent">
-              <path d="M12 21s7-7.5 7-13a7 7 0 1 0-14 0c0 5.5 7 13 7 13z" stroke="currentColor" strokeWidth="1.6" />
-              <circle cx="12" cy="8.5" r="2.5" stroke="currentColor" strokeWidth="1.6" />
-            </svg>
-            <input
-              autoFocus
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="city or zip"
-              className="flex-1 bg-transparent text-[16px] font-semibold text-ink placeholder:text-mute placeholder:font-medium outline-none tracking-tightx min-w-0"
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck={false}
-              inputMode="search"
-            />
-          </div>
-        </label>
+        <div className="relative">
+          <label className="block">
+            <span className="sr-only">City or ZIP</span>
+            <div className={cx(
+              "bg-card border rounded-2xl px-4 py-3.5 flex items-center gap-3 transition-colors",
+              showSuggestions && suggestions.length > 0
+                ? "border-ink rounded-b-none"
+                : "border-rule focus-within:border-ink"
+            )}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="flex-none text-accent">
+                <path d="M12 21s7-7.5 7-13a7 7 0 1 0-14 0c0 5.5 7 13 7 13z" stroke="currentColor" strokeWidth="1.6" />
+                <circle cx="12" cy="8.5" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+              </svg>
+              <input
+                ref={inputRef}
+                autoFocus
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                onKeyDown={handleKeyDown}
+                placeholder="city or zip"
+                className="flex-1 bg-transparent text-[16px] font-semibold text-ink placeholder:text-mute placeholder:font-medium outline-none tracking-tightx min-w-0"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                inputMode="search"
+                aria-autocomplete="list"
+                aria-expanded={showSuggestions && suggestions.length > 0}
+                aria-controls="city-suggestions"
+                data-1p-ignore
+                data-lpignore="true"
+              />
+              {query && !busy && (
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setQuery("");
+                    setSuggestions([]);
+                    inputRef.current?.focus();
+                  }}
+                  aria-label="Clear"
+                  className="flex-none text-mute text-[14px] w-5 h-5 rounded-full hover:bg-black/[.04] flex items-center justify-center"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          </label>
+
+          {showSuggestions && suggestions.length > 0 && (
+            <ul
+              id="city-suggestions"
+              role="listbox"
+              className="
+                absolute left-0 right-0 top-full
+                bg-card border border-ink border-t-0 rounded-b-2xl
+                shadow-soft overflow-hidden z-30
+                max-h-[280px] overflow-y-auto
+              "
+            >
+              {suggestions.map((s, i) => (
+                <li key={`${s.title}|${s.subtitle}|${i}`} role="option" aria-selected={activeIndex === i}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onMouseEnter={() => setActiveIndex(i)}
+                    onClick={() => chooseSuggestion(s)}
+                    className={cx(
+                      "w-full text-left px-4 py-2.5 border-t border-rule first:border-t-0 transition-colors",
+                      activeIndex === i ? "bg-black/[.04]" : "bg-transparent"
+                    )}
+                  >
+                    <div className="text-[14px] font-semibold tracking-tight2 text-ink leading-tight">{s.title}</div>
+                    {s.subtitle && (
+                      <div className="text-[11px] text-mute mt-0.5 leading-tight truncate">{s.subtitle}</div>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         {error && (
           <div className="text-[12px] text-red mt-2 font-medium" role="alert">{error}</div>
@@ -86,7 +215,11 @@ export default function PlanTripPage() {
               <button
                 key={qp.q}
                 type="button"
-                onClick={() => setQuery(qp.q)}
+                onClick={() => {
+                  skipNextFetchRef.current = true;
+                  setQuery(qp.q);
+                  setShowSuggestions(false);
+                }}
                 className="text-[11px] rounded-full px-2.5 py-1.5 font-medium bg-card border border-rule text-ink2 active:scale-[.95] transition-transform"
               >
                 {qp.label}
