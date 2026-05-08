@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { InstallButton } from "@/components/InstallButton";
+import { StartTripCTA } from "@/components/StartTripCTA";
 
 export default function WelcomePage() {
   return (
@@ -38,20 +38,7 @@ export default function WelcomePage() {
           </p>
 
           <div className="welcome-fade mt-7" style={{ animationDelay: "460ms" }}>
-            <Link
-              href="/plan"
-              className="
-                group flex items-center justify-between
-                bg-ink text-white rounded-2xl p-4
-                font-semibold shadow-cta
-                active:scale-[.98] transition-transform
-              "
-            >
-              <span className="text-[15px] tracking-tight2">Start a trip</span>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="transition-transform group-hover:translate-x-1">
-                <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </Link>
+            <StartTripCTA />
           </div>
 
           <div className="welcome-fade mt-3" style={{ animationDelay: "560ms" }}>
