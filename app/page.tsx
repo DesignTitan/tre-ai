@@ -2,10 +2,10 @@ import Link from "next/link";
 
 export default function WelcomePage() {
   return (
-    <div className="relative h-full min-h-svh sm:min-h-0 flex flex-col">
+    <div className="absolute inset-0 overflow-hidden flex flex-col">
       <div className="welcome-bg" aria-hidden />
 
-      <div className="flex-1 flex flex-col px-7 pt-10 pb-10 relative z-10">
+      <div className="flex-1 flex flex-col px-7 pt-[calc(2.5rem+env(safe-area-inset-top))] pb-[calc(2.5rem+env(safe-area-inset-bottom))] relative z-10">
         <div className="welcome-fade" style={{ animationDelay: "0ms" }}>
           <span className="inline-flex items-center gap-2 text-[10px] font-semibold tracking-cadence uppercase text-mute">
             <span className="w-[5px] h-[5px] rounded-full bg-accent inline-block" />
