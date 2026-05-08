@@ -74,6 +74,15 @@ function ScoutInner() {
     el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
+  // In Map view, keep a card always visible — auto-select the top prospect
+  // if none is selected. Tapping a marker swaps the card; tapping × clears
+  // (and the next render auto-picks the top one again).
+  useEffect(() => {
+    if (view === "map" && !selectedId && prospects.length > 0) {
+      setSelectedId(prospects[0].id);
+    }
+  }, [view, selectedId, prospects]);
+
   if (!q) {
     return (
       <div className="px-6 py-12 text-center">
@@ -228,7 +237,7 @@ function CardSlot({
 
 function SelectedSheet({ prospect, onClose }: { prospect: Prospect; onClose: () => void }) {
   return (
-    <div className="absolute bottom-16 left-0 right-0 px-3 z-[1000] pointer-events-none">
+    <div className="absolute bottom-3 left-0 right-0 px-3 z-[1050] pointer-events-none">
       <div className="pointer-events-auto bg-card/95 backdrop-blur border border-rule rounded-2xl shadow-cta p-3 flex items-start gap-3">
         <div className="flex-1 min-w-0">
           <div className="text-[10px] text-mute font-semibold tracking-[.04em] uppercase">{prospect.industry}</div>
