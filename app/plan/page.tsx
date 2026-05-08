@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { cx } from "@/lib/utils";
 import type { PlaceSuggestion } from "@/lib/crawl/sources";
 import { readRecents, pushRecent, type RecentQuery } from "@/lib/data/recents";
+import { InstallNudge, useInstallNudge } from "@/components/InstallNudge";
 
 const RANGE_OPTIONS = [5, 10, 25, 50];
 
@@ -17,6 +18,7 @@ export default function PlanTripPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [recents, setRecents] = useState<RecentQuery[]>([]);
+  const nudge = useInstallNudge();
 
   useEffect(() => {
     setRecents(readRecents());
@@ -107,6 +109,7 @@ export default function PlanTripPage() {
 
   return (
     <div>
+      {nudge.shouldShow && <InstallNudge onContinue={nudge.dismiss} />}
       <div className="px-6 pt-3.5 pb-0.5">
         <div className="text-[11px] text-accent font-semibold tracking-cadence uppercase">New trip</div>
         <h2 className="text-[30px] font-semibold tracking-tighter mt-1 leading-[1.05]">
