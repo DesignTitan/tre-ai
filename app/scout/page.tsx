@@ -45,7 +45,8 @@ function ScoutInner() {
       })
       .then((d) => {
         if (cancelled) return;
-        cacheCrawledProspects(d.prospects);
+        const toCache = [...d.prospects, ...(d.nearestBusiness ? [d.nearestBusiness] : [])];
+        cacheCrawledProspects(toCache);
         setData(d);
       })
       .catch((e) => {
@@ -160,9 +161,10 @@ function ScoutInner() {
                 </span>
               </div>
               {prospects.length === 0 ? (
-                <div className="text-mute text-[13px] py-6 text-center">
-                  No prospects matched in this radius. Try widening the radius or another city.
-                </div>
+                <EmptyState
+                  radius={data.radiusMi}
+                  nearest={data.nearestBusiness}
+                />
               ) : (
                 prospects.map(p => (
                   <CardSlot
@@ -243,6 +245,44 @@ function SelectedSheet({ prospect, onClose }: { prospect: Prospect; onClose: () 
           ×
         </button>
       </div>
+    </div>
+  );
+}
+
+function EmptyState({ radius, nearest }: { radius: number; nearest?: Prospect }) {
+  return (
+    <div className="bg-card border border-rule rounded-2xl p-5 mt-1">
+      <div className="text-[13px] text-ink font-semibold tracking-tight2">
+        No businesses within {radius} mi.
+      </div>
+      <p className="text-[12px] text-mute mt-1 leading-[1.5]">
+        OpenStreetMap coverage is volunteer-thin in some rural areas. Widening the radius from <Link href="/plan" className="text-accent font-semibold">Plan</Link> usually catches the next commercial corridor.
+      </p>
+      {nearest && (
+        <div className="mt-4 pt-4 border-t border-rule">
+          <div className="text-[10px] uppercase tracking-[.1em] text-mute font-semibold mb-1.5">Closest business on record</div>
+          <div className="flex items-start gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-semibold tracking-tight2 text-ink leading-tight">{nearest.name}</div>
+              <div className="text-[11px] text-mute mt-0.5">
+                {nearest.industry}
+                {nearest.address ? <> · {nearest.address}</> : null}
+              </div>
+              {nearest.distanceMi !== undefined && (
+                <div className="text-[12px] text-accent font-semibold mt-1.5">
+                  {nearest.distanceMi} mi away
+                </div>
+              )}
+            </div>
+            <Link
+              href={`/prospect/${nearest.id}`}
+              className="flex-none text-[11px] font-semibold text-accent tracking-[.04em] uppercase bg-accent/[.08] px-2.5 py-1.5 rounded-full"
+            >
+              Open
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

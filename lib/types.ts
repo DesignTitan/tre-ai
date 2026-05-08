@@ -100,4 +100,5 @@ export interface CrawlResult {
   fetchedAt: string;
   totalRaw: number;
   filtered: number;
+  nearestBusiness?: Prospect;
 }

@@ -3,15 +3,9 @@ import { useState, useEffect, useRef, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { cx } from "@/lib/utils";
 import type { PlaceSuggestion } from "@/lib/crawl/sources";
+import { readRecents, pushRecent, type RecentQuery } from "@/lib/data/recents";
 
 const RANGE_OPTIONS = [5, 10, 25, 50];
-const QUICK_PICKS = [
-  { label: "Detroit, MI", q: "Detroit, MI" },
-  { label: "Grand Rapids, MI", q: "Grand Rapids, MI" },
-  { label: "Cleveland, OH", q: "Cleveland, OH" },
-  { label: "Pittsburgh, PA", q: "Pittsburgh, PA" },
-  { label: "Indianapolis, IN", q: "Indianapolis, IN" },
-];
 
 export default function PlanTripPage() {
   const router = useRouter();
@@ -22,6 +16,11 @@ export default function PlanTripPage() {
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [recents, setRecents] = useState<RecentQuery[]>([]);
+
+  useEffect(() => {
+    setRecents(readRecents());
+  }, []);
   const lastFetchedRef = useRef<string>("");
   const skipNextFetchRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -75,6 +74,7 @@ export default function PlanTripPage() {
         setBusy(false);
         return;
       }
+      pushRecent({ query: q, radiusMi: range });
       const params = new URLSearchParams({ q, radius: String(range) });
       router.push(`/scout?${params.toString()}`);
     } catch {
@@ -208,25 +208,29 @@ export default function PlanTripPage() {
           <div className="text-[12px] text-red mt-2 font-medium" role="alert">{error}</div>
         )}
 
-        <div className="mt-4">
-          <span className="text-[11px] text-mute font-semibold tracking-[.1em] uppercase">Quick picks</span>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {QUICK_PICKS.map(qp => (
-              <button
-                key={qp.q}
-                type="button"
-                onClick={() => {
-                  skipNextFetchRef.current = true;
-                  setQuery(qp.q);
-                  setShowSuggestions(false);
-                }}
-                className="text-[11px] rounded-full px-2.5 py-1.5 font-medium bg-card border border-rule text-ink2 active:scale-[.95] transition-transform"
-              >
-                {qp.label}
-              </button>
-            ))}
+        {recents.length > 0 && (
+          <div className="mt-4">
+            <span className="text-[11px] text-mute font-semibold tracking-[.1em] uppercase">Recent</span>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {recents.map(r => (
+                <button
+                  key={r.ts}
+                  type="button"
+                  onClick={() => {
+                    skipNextFetchRef.current = true;
+                    setQuery(r.query);
+                    setRange(r.radiusMi);
+                    setShowSuggestions(false);
+                  }}
+                  className="text-[11px] rounded-full px-2.5 py-1.5 font-medium bg-card border border-rule text-ink2 active:scale-[.95] transition-transform"
+                  title={`${r.radiusMi}mi radius`}
+                >
+                  {r.query}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="mt-5">
           <div className="flex justify-between items-center mb-2">

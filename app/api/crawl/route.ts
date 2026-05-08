@@ -61,6 +61,23 @@ export async function GET(req: Request) {
 
     const top = prospects.slice(0, 60);
 
+    // If we still have nothing (deeply rural area), do one wide-net query so
+    // we can at least tell the user "the nearest business is N miles away"
+    // — no dead ends.
+    let nearestBusiness: typeof prospects[number] | undefined;
+    if (top.length === 0) {
+      const wideElements = await overpass(hit.lat, hit.lng, 100 * MILES_TO_M);
+      const wideProspects = transformElements(wideElements, {
+        anchorLat: hit.lat,
+        anchorLng: hit.lng,
+        areaSlug: slug,
+        areaName,
+      });
+      nearestBusiness = [...wideProspects].sort(
+        (a, b) => (a.distanceMi ?? Infinity) - (b.distanceMi ?? Infinity)
+      )[0];
+    }
+
     const body: CrawlResult = {
       location: {
         query: q,
@@ -76,6 +93,7 @@ export async function GET(req: Request) {
       fetchedAt: new Date().toISOString(),
       totalRaw: elements.length,
       filtered: prospects.length,
+      nearestBusiness,
     };
 
     return NextResponse.json(body, {
