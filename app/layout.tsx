@@ -35,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={inter.variable}>
       <body className="font-sans">
         <DeviceFrame>
-          <main className="relative flex-1 overflow-y-auto no-scrollbar pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-20 pt-[env(safe-area-inset-top)] sm:pt-2 screen-enter">
+          <main className="relative flex-1 overflow-y-auto no-scrollbar pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:pb-28 pt-[env(safe-area-inset-top)] sm:pt-2 screen-enter">
             {children}
           </main>
           <TabBar />
