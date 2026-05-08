@@ -55,8 +55,8 @@ export default function PlanTripPage() {
 
       <form onSubmit={startTrip} className="px-6 mt-4.5">
         <label className="block">
-          <span className="text-[11px] text-mute font-semibold tracking-[.1em] uppercase">City or ZIP</span>
-          <div className="mt-2 bg-card border border-rule rounded-2xl px-4 py-3.5 flex items-center gap-3 focus-within:border-ink transition-colors">
+          <span className="sr-only">City or ZIP</span>
+          <div className="bg-card border border-rule rounded-2xl px-4 py-3.5 flex items-center gap-3 focus-within:border-ink transition-colors">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="flex-none text-accent">
               <path d="M12 21s7-7.5 7-13a7 7 0 1 0-14 0c0 5.5 7 13 7 13z" stroke="currentColor" strokeWidth="1.6" />
               <circle cx="12" cy="8.5" r="2.5" stroke="currentColor" strokeWidth="1.6" />
