@@ -29,15 +29,18 @@ async function nominatimSearch(query: string, limit = 1): Promise<Array<{
   type?: string;
   address?: { city?: string; town?: string; village?: string; state?: string; postcode?: string; country_code?: string };
 }>> {
-  const params = new URLSearchParams({
-    q: query,
-    format: "json",
-    addressdetails: "1",
-    limit: String(limit),
-    "accept-language": "en",
-    countrycodes: "us,ca",
-  });
-  const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+  // Nominatim's countrycodes wants a raw comma, not %2C — building the URL by
+  // hand because URLSearchParams URL-encodes commas and Nominatim then returns
+  // empty for "us%2Cca". Same trap, also bites a few other multi-value params.
+  const url =
+    "https://nominatim.openstreetmap.org/search" +
+    `?q=${encodeURIComponent(query)}` +
+    `&format=json` +
+    `&addressdetails=1` +
+    `&limit=${limit}` +
+    `&accept-language=en` +
+    `&countrycodes=us,ca`;
+  const res = await fetch(url, {
     headers: {
       "User-Agent": USER_AGENT,
       Accept: "application/json",
@@ -207,7 +210,7 @@ export interface OverpassElement {
   tags?: Record<string, string>;
 }
 
-// Consolidated filters — 7 catchalls + regexes instead of ~85 clauses,
+// Consolidated filters — 8 catchalls + regexes instead of ~85 clauses,
 // roughly 10× faster Overpass query so big-radius queries (e.g. LA + 10mi)
 // don't time out. The transform layer drops chains and unnamed POIs after.
 const PROSPECT_TAG_FILTERS = [
@@ -218,10 +221,12 @@ const PROSPECT_TAG_FILTERS = [
   '["office"]',
   '["healthcare"]',
   '["shop"]',
-  // Food service, auto services, personal services, independent medical
-  '["amenity"~"^(restaurant|cafe|bar|pub|fast_food|ice_cream|biergarten|fuel|car_wash|car_rental|funeral_hall|veterinary|dentist|doctors|clinic|pharmacy)$"]',
+  // Food service, auto services, personal services, independent medical, banks
+  '["amenity"~"^(restaurant|cafe|bar|pub|fast_food|ice_cream|biergarten|fuel|car_wash|car_rental|funeral_hall|veterinary|dentist|doctors|clinic|pharmacy|bank)$"]',
   // Independent hospitality
-  '["tourism"~"^(hotel|motel|guest_house|hostel|apartment)$"]',
+  '["tourism"~"^(hotel|motel|guest_house|hostel|apartment|chalet|caravan_site|camp_site)$"]',
+  // Independent leisure (gyms, dance studios, bowling, arcades, escape rooms)
+  '["leisure"~"^(fitness_centre|sports_centre|bowling_alley|amusement_arcade|dance|escape_game|adult_gaming_centre|horse_riding|golf_course)$"]',
 ];
 
 export async function overpass(

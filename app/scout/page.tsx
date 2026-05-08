@@ -93,7 +93,10 @@ function ScoutInner() {
             {loading ? "Crawling…" : `${prospects.length} prospects`}
           </h2>
           <div className="text-[12px] text-mute mt-0.5">
-            <b className="text-ink font-semibold">{radius} mi</b>
+            <b className="text-ink font-semibold">{data?.radiusMi ?? radius} mi</b>
+            {data?.autoExpanded && data.requestedRadiusMi && (
+              <span className="text-accent"> · expanded from {data.requestedRadiusMi}mi</span>
+            )}
             {data && <> · scanned {data.totalRaw} POIs · kept {data.filtered}</>}
           </div>
         </div>

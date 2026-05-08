@@ -94,6 +94,8 @@ export interface CrawlLocation {
 export interface CrawlResult {
   location: CrawlLocation;
   radiusMi: number;
+  requestedRadiusMi?: number;
+  autoExpanded?: boolean;
   prospects: Prospect[];
   fetchedAt: string;
   totalRaw: number;

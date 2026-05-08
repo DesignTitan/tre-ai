@@ -29,16 +29,35 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "geocode not found" }, { status: 404 });
     }
 
-    const elements = await overpass(hit.lat, hit.lng, radiusMi * MILES_TO_M);
     const slug = slugifyQuery(hit.displayName.split(",")[0] || q);
     const areaName = (hit.displayName.split(",")[0] || q).trim();
 
-    const prospects = transformElements(elements, {
-      anchorLat: hit.lat,
-      anchorLng: hit.lng,
-      areaSlug: slug,
-      areaName,
-    });
+    // Auto-expand: if the user-requested radius returns < MIN_PROSPECTS,
+    // widen the search up to 50mi and retry. OSM coverage is volunteer-thin
+    // in small towns / rural areas — 33M SMBs in the US, so empty-from-OSM
+    // usually means we need to reach the next commercial corridor over.
+    const MIN_PROSPECTS = 12;
+    const RADIUS_LADDER = [radiusMi];
+    if (radiusMi < 50) RADIUS_LADDER.push(Math.min(50, radiusMi * 2));
+    if (radiusMi < 25) RADIUS_LADDER.push(Math.min(50, radiusMi * 4));
+
+    let elements: Awaited<ReturnType<typeof overpass>> = [];
+    let prospects: ReturnType<typeof transformElements> = [];
+    let effectiveRadius = radiusMi;
+    let expanded = false;
+
+    for (const r of RADIUS_LADDER) {
+      elements = await overpass(hit.lat, hit.lng, r * MILES_TO_M);
+      prospects = transformElements(elements, {
+        anchorLat: hit.lat,
+        anchorLng: hit.lng,
+        areaSlug: slug,
+        areaName,
+      });
+      effectiveRadius = r;
+      if (prospects.length >= MIN_PROSPECTS) break;
+      if (r > radiusMi) expanded = true;
+    }
 
     const top = prospects.slice(0, 60);
 
@@ -50,7 +69,9 @@ export async function GET(req: Request) {
         lng: hit.lng,
         type: hit.type,
       },
-      radiusMi,
+      radiusMi: effectiveRadius,
+      requestedRadiusMi: radiusMi,
+      autoExpanded: expanded,
       prospects: top,
       fetchedAt: new Date().toISOString(),
       totalRaw: elements.length,
