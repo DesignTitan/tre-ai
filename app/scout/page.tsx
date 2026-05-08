@@ -130,20 +130,6 @@ function ScoutInner() {
         </button>
       )}
 
-      {menuOpen && (
-        <ViewMenu
-          view={view}
-          onView={(v) => setView(v)}
-          minScore={minScore}
-          onMinScore={setMinScore}
-          sortBy={sortBy}
-          onSortBy={setSortBy}
-          totalCount={allProspects.length}
-          filteredCount={prospects.length}
-          onClose={() => setMenuOpen(false)}
-        />
-      )}
-
       {error && (
         <div className="px-6 py-4 text-[13px] text-red font-medium">
           Crawl failed: {error}
@@ -214,6 +200,20 @@ function ScoutInner() {
             />
           )}
         </div>
+      )}
+
+      {data && !loading && menuOpen && (
+        <ViewMenu
+          view={view}
+          onView={(v) => setView(v)}
+          minScore={minScore}
+          onMinScore={setMinScore}
+          sortBy={sortBy}
+          onSortBy={setSortBy}
+          totalCount={allProspects.length}
+          filteredCount={prospects.length}
+          onClose={() => setMenuOpen(false)}
+        />
       )}
     </div>
   );
@@ -302,15 +302,16 @@ function ViewMenu({
       role="dialog"
       aria-modal="true"
       aria-label="View and filter options"
-      className="fixed inset-0 z-[2000] bg-ink/45 backdrop-blur-sm flex items-end sm:items-center justify-center"
+      className="absolute inset-0 z-[1500] bg-ink/45 backdrop-blur-sm flex items-end justify-center"
       onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         className="
-          w-full sm:max-w-[400px]
-          bg-bg rounded-t-3xl sm:rounded-3xl
-          shadow-cta relative
+          w-full
+          bg-bg rounded-t-3xl
+          shadow-[0_-12px_30px_rgba(16,20,24,0.18)]
+          relative
           welcome-fade
         "
         style={{ animationDelay: "0ms" }}
