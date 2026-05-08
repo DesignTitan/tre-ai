@@ -29,6 +29,9 @@ function ScoutInner() {
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState<ViewMode>("split");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [minScore, setMinScore] = useState(0);
+  const [sortBy, setSortBy] = useState<"score" | "distance">("score");
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   useEffect(() => {
@@ -60,7 +63,16 @@ function ScoutInner() {
     };
   }, [q, radius]);
 
-  const prospects = data?.prospects ?? [];
+  const allProspects = data?.prospects ?? [];
+  const prospects = useMemo(() => {
+    let list = minScore > 0 ? allProspects.filter(p => p.score >= minScore) : allProspects.slice();
+    if (sortBy === "distance") {
+      list.sort((a, b) => (a.distanceMi ?? Infinity) - (b.distanceMi ?? Infinity));
+    } else {
+      list.sort((a, b) => b.score - a.score);
+    }
+    return list;
+  }, [allProspects, minScore, sortBy]);
   const placeName = useMemo(() => {
     if (!data) return q || "Trip";
     const parts = data.location.displayName.split(",").map(s => s.trim());
@@ -93,27 +105,44 @@ function ScoutInner() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-6 pt-3 pb-2 border-b border-rule">
-        <div className="flex gap-1.5">
-          {([
-            { key: "split", label: "Split" },
-            { key: "map", label: "Map" },
-            { key: "list", label: "List" },
-          ] as { key: ViewMode; label: string }[]).map(opt => (
-            <button
-              key={opt.key}
-              onClick={() => setView(opt.key)}
-              className={cx(
-                "text-[11px] rounded-full px-3 py-1.5 font-semibold border transition-colors active:scale-[.95]",
-                view === opt.key ? "bg-ink text-white border-ink" : "bg-card text-ink2 border-rule"
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
+    <div className="flex flex-col h-full relative">
+      {data && !loading && (
+        <button
+          type="button"
+          onClick={() => setMenuOpen(true)}
+          aria-label="View and filter options"
+          className="
+            absolute top-3 right-4 z-[1090]
+            w-11 h-11 rounded-full
+            bg-card/95 backdrop-blur
+            border border-rule
+            shadow-cta
+            flex items-center justify-center
+            text-ink active:scale-[.95] transition-transform
+          "
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M3 6h12M3 12h8M3 18h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            <circle cx="18" cy="6" r="2" stroke="currentColor" strokeWidth="1.8" fill="#F4F1EC" />
+            <circle cx="14" cy="12" r="2" stroke="currentColor" strokeWidth="1.8" fill="#F4F1EC" />
+            <circle cx="20" cy="18" r="2" stroke="currentColor" strokeWidth="1.8" fill="#F4F1EC" />
+          </svg>
+        </button>
+      )}
+
+      {menuOpen && (
+        <ViewMenu
+          view={view}
+          onView={(v) => setView(v)}
+          minScore={minScore}
+          onMinScore={setMinScore}
+          sortBy={sortBy}
+          onSortBy={setSortBy}
+          totalCount={allProspects.length}
+          filteredCount={prospects.length}
+          onClose={() => setMenuOpen(false)}
+        />
+      )}
 
       {error && (
         <div className="px-6 py-4 text-[13px] text-red font-medium">
@@ -246,6 +275,126 @@ function SelectedSheet({ prospect, onClose }: { prospect: Prospect; onClose: () 
 }
 
 const SNAP_POINTS = [25, 58, 88]; // collapsed / default / expanded
+
+function ViewMenu({
+  view,
+  onView,
+  minScore,
+  onMinScore,
+  sortBy,
+  onSortBy,
+  totalCount,
+  filteredCount,
+  onClose,
+}: {
+  view: ViewMode;
+  onView: (v: ViewMode) => void;
+  minScore: number;
+  onMinScore: (v: number) => void;
+  sortBy: "score" | "distance";
+  onSortBy: (v: "score" | "distance") => void;
+  totalCount: number;
+  filteredCount: number;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="View and filter options"
+      className="fixed inset-0 z-[2000] bg-ink/45 backdrop-blur-sm flex items-end sm:items-center justify-center"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="
+          w-full sm:max-w-[400px]
+          bg-bg rounded-t-3xl sm:rounded-3xl
+          shadow-cta relative
+          welcome-fade
+        "
+        style={{ animationDelay: "0ms" }}
+      >
+        <div className="welcome-bg" aria-hidden />
+        <div className="relative px-6 pt-3 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+          <div className="flex justify-center pb-2">
+            <span className="block w-12 h-[5px] bg-ink/20 rounded-full" />
+          </div>
+
+          <ViewSection title="View">
+            {(["split", "map", "list"] as ViewMode[]).map((v) => (
+              <Chip key={v} active={view === v} onClick={() => onView(v)}>
+                {v === "split" ? "Split" : v === "map" ? "Map" : "List"}
+              </Chip>
+            ))}
+          </ViewSection>
+
+          <ViewSection title="Min score">
+            {[
+              { v: 0, label: "All" },
+              { v: 50, label: "50+" },
+              { v: 60, label: "60+" },
+              { v: 70, label: "70+" },
+              { v: 80, label: "80+" },
+            ].map(({ v, label }) => (
+              <Chip key={v} active={minScore === v} onClick={() => onMinScore(v)}>
+                {label}
+              </Chip>
+            ))}
+          </ViewSection>
+
+          <ViewSection title="Sort by">
+            {([
+              { v: "score" as const, label: "Score" },
+              { v: "distance" as const, label: "Distance" },
+            ]).map(({ v, label }) => (
+              <Chip key={v} active={sortBy === v} onClick={() => onSortBy(v)}>
+                {label}
+              </Chip>
+            ))}
+          </ViewSection>
+
+          <div className="mt-5 flex items-center justify-between text-[12px] text-mute">
+            <span>
+              Showing <b className="text-ink font-semibold">{filteredCount}</b> of {totalCount}
+            </span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="bg-ink text-white rounded-full text-[13px] font-semibold tracking-tight2 px-5 py-2 active:scale-[.97] transition-transform"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ViewSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="mt-3 first:mt-1">
+      <div className="text-[10px] uppercase tracking-[.1em] text-mute font-semibold mb-1.5">{title}</div>
+      <div className="flex flex-wrap gap-1.5">{children}</div>
+    </div>
+  );
+}
+
+function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cx(
+        "text-[12px] font-semibold tracking-tight2 rounded-full px-3 py-1.5 border transition-colors active:scale-[.95]",
+        active ? "bg-ink text-white border-ink" : "bg-card text-ink2 border-rule"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
 
 function SplitSheet({
   placeName,
