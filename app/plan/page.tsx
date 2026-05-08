@@ -271,7 +271,7 @@ export default function PlanTripPage() {
             flex justify-between items-center font-semibold
             shadow-cta active:scale-[.98] transition-transform
             disabled:opacity-60 disabled:scale-100
-            mb-6
+            mb-10
           "
         >
           <span className="text-[15px] tracking-tight2">{busy ? "Locating…" : "Start trip"}</span>
