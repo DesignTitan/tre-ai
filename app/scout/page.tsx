@@ -136,50 +136,56 @@ function ScoutInner() {
 
       {loading && <CrawlLoader />}
 
-      {data && !loading && (
-        <div className="flex-1 flex flex-col min-h-0">
-          {view !== "list" && (
-            <div className={cx("relative", view === "map" ? "flex-1" : "h-[260px] flex-none")}>
-              <MapView
-                centerLat={data.location.lat}
-                centerLng={data.location.lng}
-                radiusMi={data.radiusMi}
-                prospects={prospects}
-                selectedId={selectedId}
+      {data && !loading && view === "list" && (
+        <div className="flex-1 overflow-y-auto px-6 pt-3 pb-6 flex flex-col gap-2.5">
+          <div className="text-[11px] uppercase tracking-[.1em] text-mute font-semibold flex justify-between items-center sticky top-0 bg-bg py-1.5 -mt-1.5">
+            <span>Top of the list</span>
+            <span className="text-mute font-medium normal-case tracking-normal">
+              {prospects.length} crawled
+            </span>
+          </div>
+          {prospects.length === 0 ? (
+            <EmptyState radius={data.radiusMi} nearest={data.nearestBusiness} />
+          ) : (
+            prospects.map(p => (
+              <CardSlot
+                key={p.id}
+                prospect={p}
+                selected={selectedId === p.id}
                 onSelect={selectProspect}
-                className="h-full w-full"
+                setRef={(el) => {
+                  if (el) cardRefs.current.set(p.id, el);
+                  else cardRefs.current.delete(p.id);
+                }}
               />
-            </div>
+            ))
           )}
+        </div>
+      )}
 
-          {view !== "map" && (
-            <div className="flex-1 overflow-y-auto px-6 pt-3 pb-6 flex flex-col gap-2.5">
-              <div className="text-[11px] uppercase tracking-[.1em] text-mute font-semibold flex justify-between items-center sticky top-0 bg-paper py-1.5 -mt-1.5">
-                <span>Top of the list</span>
-                <span className="text-mute font-medium normal-case tracking-normal">
-                  {prospects.length} crawled
-                </span>
-              </div>
-              {prospects.length === 0 ? (
-                <EmptyState
-                  radius={data.radiusMi}
-                  nearest={data.nearestBusiness}
-                />
-              ) : (
-                prospects.map(p => (
-                  <CardSlot
-                    key={p.id}
-                    prospect={p}
-                    selected={selectedId === p.id}
-                    onSelect={selectProspect}
-                    setRef={(el) => {
-                      if (el) cardRefs.current.set(p.id, el);
-                      else cardRefs.current.delete(p.id);
-                    }}
-                  />
-                ))
-              )}
-            </div>
+      {data && !loading && view !== "list" && (
+        <div className="flex-1 relative min-h-0">
+          <div className="absolute inset-0">
+            <MapView
+              centerLat={data.location.lat}
+              centerLng={data.location.lng}
+              radiusMi={data.radiusMi}
+              prospects={prospects}
+              selectedId={selectedId}
+              onSelect={selectProspect}
+              className="h-full w-full"
+            />
+          </div>
+
+          {view === "split" && (
+            <SplitSheet
+              radius={data.radiusMi}
+              nearest={data.nearestBusiness}
+              prospects={prospects}
+              selectedId={selectedId}
+              onSelect={selectProspect}
+              cardRefs={cardRefs}
+            />
           )}
 
           {view === "map" && selectedId && (
@@ -244,6 +250,76 @@ function SelectedSheet({ prospect, onClose }: { prospect: Prospect; onClose: () 
         >
           ×
         </button>
+      </div>
+    </div>
+  );
+}
+
+function SplitSheet({
+  radius,
+  nearest,
+  prospects,
+  selectedId,
+  onSelect,
+  cardRefs,
+}: {
+  radius: number;
+  nearest?: Prospect;
+  prospects: Prospect[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  cardRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div
+      className={cx(
+        "absolute left-0 right-0 bottom-0 z-[1000]",
+        "bg-bg rounded-t-3xl",
+        "shadow-[0_-12px_30px_rgba(16,20,24,0.12)]",
+        "flex flex-col",
+        "transition-[height] duration-300 ease-out",
+        expanded ? "h-[88%]" : "h-[58%]"
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => setExpanded(e => !e)}
+        aria-label={expanded ? "Collapse sheet" : "Expand sheet"}
+        className="flex justify-center pt-2 pb-1 -mb-1 active:scale-[.97] transition-transform"
+      >
+        <span className="block w-10 h-1 bg-ink/15 rounded-full" />
+      </button>
+
+      <div className="px-6 pt-1 pb-2 flex items-baseline justify-between gap-3">
+        <h3 className="text-[20px] font-semibold tracking-tightx text-ink leading-tight">
+          {prospects.length} prospects
+        </h3>
+        <span className="text-[10px] text-mute font-medium tracking-[.04em] uppercase">
+          {radius} mi radius
+        </span>
+      </div>
+      <p className="px-6 text-[11px] text-mute leading-snug">
+        Pan the map to scan the area. Tap a card or marker to highlight.
+      </p>
+
+      <div className="flex-1 overflow-y-auto px-6 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] flex flex-col gap-2.5 mt-1">
+        {prospects.length === 0 ? (
+          <EmptyState radius={radius} nearest={nearest} />
+        ) : (
+          prospects.map(p => (
+            <CardSlot
+              key={p.id}
+              prospect={p}
+              selected={selectedId === p.id}
+              onSelect={onSelect}
+              setRef={(el) => {
+                if (el) cardRefs.current.set(p.id, el);
+                else cardRefs.current.delete(p.id);
+              }}
+            />
+          ))
+        )}
       </div>
     </div>
   );
