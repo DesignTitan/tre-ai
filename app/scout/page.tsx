@@ -95,21 +95,7 @@ function ScoutInner() {
   return (
     <div className="flex flex-col h-full">
       <div className="px-6 pt-3 pb-2 border-b border-rule">
-        <div className="flex items-baseline justify-between gap-3 min-w-0">
-          <div className="min-w-0 flex-1 truncate">
-            <span className="text-[10px] text-accent font-semibold tracking-cadence uppercase">
-              {placeName} · {data?.radiusMi ?? radius}mi
-            </span>
-            {data?.autoExpanded && data.requestedRadiusMi && (
-              <span className="text-[10px] text-accent/70 ml-1.5 font-medium normal-case">expanded from {data.requestedRadiusMi}mi</span>
-            )}
-          </div>
-          <span className="flex-none text-[14px] font-semibold tracking-tight2 text-ink">
-            {loading ? "Crawling…" : `${prospects.length} prospects`}
-          </span>
-        </div>
-
-        <div className="mt-2 flex gap-1.5">
+        <div className="flex gap-1.5">
           {([
             { key: "split", label: "Split" },
             { key: "map", label: "Map" },
@@ -180,7 +166,10 @@ function ScoutInner() {
 
           {view === "split" && (
             <SplitSheet
+              placeName={placeName}
               radius={data.radiusMi}
+              autoExpanded={data.autoExpanded}
+              requestedRadiusMi={data.requestedRadiusMi}
               nearest={data.nearestBusiness}
               prospects={prospects}
               selectedId={selectedId}
@@ -259,14 +248,20 @@ function SelectedSheet({ prospect, onClose }: { prospect: Prospect; onClose: () 
 const SNAP_POINTS = [25, 58, 88]; // collapsed / default / expanded
 
 function SplitSheet({
+  placeName,
   radius,
+  autoExpanded,
+  requestedRadiusMi,
   nearest,
   prospects,
   selectedId,
   onSelect,
   cardRefs,
 }: {
+  placeName: string;
   radius: number;
+  autoExpanded?: boolean;
+  requestedRadiusMi?: number;
   nearest?: Prospect;
   prospects: Prospect[];
   selectedId: string | null;
@@ -351,13 +346,18 @@ function SplitSheet({
           <span className="block w-12 h-[5px] bg-ink/20 rounded-full pointer-events-none" />
         </div>
 
-        <div className="px-6 pt-1 pb-2 flex items-baseline justify-between gap-3 pointer-events-none">
+        <div className="px-6 pt-0.5 pb-1 pointer-events-none">
+          <span className="text-[10px] text-accent font-semibold tracking-cadence uppercase truncate block">
+            {placeName} · {radius}mi
+            {autoExpanded && requestedRadiusMi && (
+              <span className="text-accent/70 ml-1.5 font-medium normal-case">expanded from {requestedRadiusMi}mi</span>
+            )}
+          </span>
+        </div>
+        <div className="px-6 pb-2 flex items-baseline justify-between gap-3 pointer-events-none">
           <h3 className="text-[20px] font-semibold tracking-tightx text-ink leading-tight">
             {prospects.length} prospects
           </h3>
-          <span className="text-[10px] text-mute font-medium tracking-[.04em] uppercase">
-            {radius} mi radius
-          </span>
         </div>
         <p className="px-6 pb-3 text-[11px] text-mute leading-snug pointer-events-none">
           Pan the map to scan the area. Tap a card or marker to highlight.
