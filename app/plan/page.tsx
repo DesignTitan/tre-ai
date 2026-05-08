@@ -126,16 +126,16 @@ export default function PlanTripPage() {
         <div className="mt-4.5">
         <div className="relative">
           <label className="block">
-            <span className="sr-only">City or ZIP</span>
+            <span className="sr-only">Search city or ZIP</span>
             <div className={cx(
               "bg-card border rounded-2xl px-4 py-3.5 flex items-center gap-3 transition-colors",
-              showSuggestions && suggestions.length > 0
+              showSuggestions && (suggestions.length > 0 || (query.trim().length < 2 && recents.length > 0))
                 ? "border-ink rounded-b-none"
                 : "border-rule focus-within:border-ink"
             )}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="flex-none text-accent">
-                <path d="M12 21s7-7.5 7-13a7 7 0 1 0-14 0c0 5.5 7 13 7 13z" stroke="currentColor" strokeWidth="1.6" />
-                <circle cx="12" cy="8.5" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+                <circle cx="11" cy="11" r="6" stroke="currentColor" strokeWidth="1.8" />
+                <path d="m20 20-4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
               </svg>
               <input
                 ref={inputRef}
@@ -148,14 +148,14 @@ export default function PlanTripPage() {
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
                 onKeyDown={handleKeyDown}
-                placeholder="city or zip"
+                placeholder="Search city or ZIP"
                 className="flex-1 bg-transparent text-[16px] font-semibold text-ink placeholder:text-mute placeholder:font-medium outline-none tracking-tightx min-w-0"
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck={false}
                 inputMode="search"
                 aria-autocomplete="list"
-                aria-expanded={showSuggestions && suggestions.length > 0}
+                aria-expanded={showSuggestions && (suggestions.length > 0 || (query.trim().length < 2 && recents.length > 0))}
                 aria-controls="city-suggestions"
                 data-1p-ignore
                 data-lpignore="true"
@@ -178,7 +178,7 @@ export default function PlanTripPage() {
             </div>
           </label>
 
-          {showSuggestions && suggestions.length > 0 && (
+          {showSuggestions && (suggestions.length > 0 || (query.trim().length < 2 && recents.length > 0)) && (
             <ul
               id="city-suggestions"
               role="listbox"
@@ -186,58 +186,73 @@ export default function PlanTripPage() {
                 absolute left-0 right-0 top-full
                 bg-card border border-ink border-t-0 rounded-b-2xl
                 shadow-soft overflow-hidden z-30
-                max-h-[280px] overflow-y-auto
+                max-h-[320px] overflow-y-auto
               "
             >
-              {suggestions.map((s, i) => (
-                <li key={`${s.title}|${s.subtitle}|${i}`} role="option" aria-selected={activeIndex === i}>
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onMouseEnter={() => setActiveIndex(i)}
-                    onClick={() => chooseSuggestion(s)}
-                    className={cx(
-                      "w-full text-left px-4 py-2.5 border-t border-rule first:border-t-0 transition-colors",
-                      activeIndex === i ? "bg-black/[.04]" : "bg-transparent"
-                    )}
-                  >
-                    <div className="text-[14px] font-semibold tracking-tight2 text-ink leading-tight">{s.title}</div>
-                    {s.subtitle && (
-                      <div className="text-[11px] text-mute mt-0.5 leading-tight truncate">{s.subtitle}</div>
-                    )}
-                  </button>
-                </li>
-              ))}
+              {query.trim().length < 2 && recents.length > 0 ? (
+                <>
+                  <li className="px-4 pt-2.5 pb-1 text-[10px] font-semibold tracking-[.1em] uppercase text-mute bg-card sticky top-0">
+                    Recent
+                  </li>
+                  {recents.map((r) => (
+                    <li key={r.ts} role="option" aria-selected={false}>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          skipNextFetchRef.current = true;
+                          setQuery(r.query);
+                          setRange(r.radiusMi);
+                          setShowSuggestions(false);
+                          void startTripWith(r.query);
+                        }}
+                        className="w-full text-left px-4 py-2.5 border-t border-rule transition-colors flex items-center gap-3 hover:bg-black/[.04]"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="flex-none text-mute">
+                          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
+                          <path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                        </svg>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[14px] font-semibold tracking-tight2 text-ink leading-tight truncate">{r.query}</div>
+                          <div className="text-[11px] text-mute mt-0.5 leading-tight">{r.radiusMi}mi radius</div>
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </>
+              ) : (
+                suggestions.map((s, i) => (
+                  <li key={`${s.title}|${s.subtitle}|${i}`} role="option" aria-selected={activeIndex === i}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onMouseEnter={() => setActiveIndex(i)}
+                      onClick={() => chooseSuggestion(s)}
+                      className={cx(
+                        "w-full text-left px-4 py-2.5 border-t border-rule first:border-t-0 transition-colors flex items-center gap-3",
+                        activeIndex === i ? "bg-black/[.04]" : "bg-transparent"
+                      )}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="flex-none text-mute">
+                        <path d="M12 21s7-7.5 7-13a7 7 0 1 0-14 0c0 5.5 7 13 7 13z" stroke="currentColor" strokeWidth="1.6" />
+                        <circle cx="12" cy="8.5" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+                      </svg>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[14px] font-semibold tracking-tight2 text-ink leading-tight">{s.title}</div>
+                        {s.subtitle && (
+                          <div className="text-[11px] text-mute mt-0.5 leading-tight truncate">{s.subtitle}</div>
+                        )}
+                      </div>
+                    </button>
+                  </li>
+                ))
+              )}
             </ul>
           )}
         </div>
 
         {error && (
           <div className="text-[12px] text-red mt-2 font-medium" role="alert">{error}</div>
-        )}
-
-        {recents.length > 0 && (
-          <div className="mt-4">
-            <span className="text-[11px] text-mute font-semibold tracking-[.1em] uppercase">Recent</span>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {recents.map(r => (
-                <button
-                  key={r.ts}
-                  type="button"
-                  onClick={() => {
-                    skipNextFetchRef.current = true;
-                    setQuery(r.query);
-                    setRange(r.radiusMi);
-                    setShowSuggestions(false);
-                  }}
-                  className="text-[11px] rounded-full px-2.5 py-1.5 font-medium bg-card border border-rule text-ink2 active:scale-[.95] transition-transform"
-                  title={`${r.radiusMi}mi radius`}
-                >
-                  {r.query}
-                </button>
-              ))}
-            </div>
-          </div>
         )}
 
         <div className="mt-5">
