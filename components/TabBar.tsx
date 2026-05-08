@@ -19,10 +19,10 @@ const TRIP_ICON = (
 );
 
 const TABS: Tab[] = [
-  { href: "/scout",    label: "Scout",    match: p => p.startsWith("/scout") || p.startsWith("/prospect"), icon: SCOUT_ICON },
+  { href: "/plan",     label: "Scout",    match: p => p.startsWith("/plan"),     icon: SCOUT_ICON },
   { href: "/today",    label: "Today",    match: p => p.startsWith("/today"),    icon: TODAY_ICON },
   { href: "/pipeline", label: "Pipeline", match: p => p.startsWith("/pipeline"), icon: PIPE_ICON },
-  { href: "/plan",     label: "Trip",     match: p => p.startsWith("/plan"),     icon: TRIP_ICON },
+  { href: "/scout",    label: "Trip",     match: p => p.startsWith("/scout") || p.startsWith("/prospect"), icon: TRIP_ICON },
 ];
 
 export function TabBar() {

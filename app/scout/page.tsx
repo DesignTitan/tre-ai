@@ -94,47 +94,39 @@ function ScoutInner() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-6 pt-3 pb-3 flex justify-between items-start gap-3 border-b border-rule">
-        <div className="min-w-0 flex-1">
-          <div className="text-[11px] text-accent font-semibold tracking-cadence uppercase truncate">
-            {placeName} Trip
-          </div>
-          <h2 className="text-[22px] font-semibold tracking-tightx mt-0.5 leading-[1.05]">
-            {loading ? "Crawling…" : `${prospects.length} prospects`}
-          </h2>
-          <div className="text-[12px] text-mute mt-0.5">
-            <b className="text-ink font-semibold">{data?.radiusMi ?? radius} mi</b>
+      <div className="px-6 pt-3 pb-2 border-b border-rule">
+        <div className="flex items-baseline justify-between gap-3 min-w-0">
+          <div className="min-w-0 flex-1 truncate">
+            <span className="text-[10px] text-accent font-semibold tracking-cadence uppercase">
+              {placeName} · {data?.radiusMi ?? radius}mi
+            </span>
             {data?.autoExpanded && data.requestedRadiusMi && (
-              <span className="text-accent"> · expanded from {data.requestedRadiusMi}mi</span>
+              <span className="text-[10px] text-accent/70 ml-1.5 font-medium normal-case">expanded from {data.requestedRadiusMi}mi</span>
             )}
-            {data && <> · scanned {data.totalRaw} POIs · kept {data.filtered}</>}
           </div>
+          <span className="flex-none text-[14px] font-semibold tracking-tight2 text-ink">
+            {loading ? "Crawling…" : `${prospects.length} prospects`}
+          </span>
         </div>
-        <Link
-          href="/plan"
-          className="flex-none text-[11px] font-semibold text-accent tracking-[.04em] uppercase bg-accent/[.08] px-2.5 py-1.5 rounded-full"
-        >
-          Edit
-        </Link>
-      </div>
 
-      <div className="px-6 py-2 flex gap-1.5 border-b border-rule">
-        {([
-          { key: "split", label: "Split" },
-          { key: "map", label: "Map" },
-          { key: "list", label: "List" },
-        ] as { key: ViewMode; label: string }[]).map(opt => (
-          <button
-            key={opt.key}
-            onClick={() => setView(opt.key)}
-            className={cx(
-              "text-[11px] rounded-full px-3 py-1.5 font-semibold border transition-colors active:scale-[.95]",
-              view === opt.key ? "bg-ink text-white border-ink" : "bg-card text-ink2 border-rule"
-            )}
-          >
-            {opt.label}
-          </button>
-        ))}
+        <div className="mt-2 flex gap-1.5">
+          {([
+            { key: "split", label: "Split" },
+            { key: "map", label: "Map" },
+            { key: "list", label: "List" },
+          ] as { key: ViewMode; label: string }[]).map(opt => (
+            <button
+              key={opt.key}
+              onClick={() => setView(opt.key)}
+              className={cx(
+                "text-[11px] rounded-full px-3 py-1.5 font-semibold border transition-colors active:scale-[.95]",
+                view === opt.key ? "bg-ink text-white border-ink" : "bg-card text-ink2 border-rule"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {error && (
