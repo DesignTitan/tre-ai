@@ -88,15 +88,16 @@ export function MapView({
   );
 
   return (
+    <div className={`relative ${className ?? "h-full w-full"}`}>
     <MapContainer
       center={[centerLat, centerLng]}
       zoom={12}
       scrollWheelZoom
-      className={className ?? "h-full w-full"}
+      attributionControl={false}
+      className="h-full w-full"
       style={{ background: "#E8E2D6" }}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <MapViewport centerLat={centerLat} centerLng={centerLng} radiusMi={radiusMi} />
@@ -123,6 +124,21 @@ export function MapView({
         />
       ))}
     </MapContainer>
+    <a
+      href="https://www.openstreetmap.org/copyright"
+      target="_blank"
+      rel="noreferrer"
+      className="
+        absolute bottom-1 right-1 z-[400]
+        text-[9px] text-mute hover:text-ink
+        bg-bg/70 backdrop-blur-sm rounded px-1.5 py-0.5
+        font-medium tracking-tight2
+      "
+      aria-label="Map data © OpenStreetMap contributors"
+    >
+      © OSM
+    </a>
+    </div>
   );
 }
 

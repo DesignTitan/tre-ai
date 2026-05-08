@@ -207,117 +207,21 @@ export interface OverpassElement {
   tags?: Record<string, string>;
 }
 
+// Consolidated filters — 7 catchalls + regexes instead of ~85 clauses,
+// roughly 10× faster Overpass query so big-radius queries (e.g. LA + 10mi)
+// don't time out. The transform layer drops chains and unnamed POIs after.
 const PROSPECT_TAG_FILTERS = [
-  // Skilled trades — strongest exit-readiness signal
+  // Skilled trades, professional services, healthcare, retail — catchall
   '["craft"]',
-
-  // Industrial / manufacturing
   '["industrial"]',
   '["man_made"="works"]',
-
-  // Professional services — owner-led practices
   '["office"]',
-
-  // Healthcare — independent practices (dental, optometry, chiropractic, vet, etc.)
   '["healthcare"]',
-  '["amenity"="dentist"]',
-  '["amenity"="doctors"]',
-  '["amenity"="clinic"]',
-  '["amenity"="veterinary"]',
-  '["amenity"="pharmacy"]',
-
-  // Auto-related
-  '["shop"="car_repair"]',
-  '["shop"="car"]',
-  '["shop"="motorcycle"]',
-  '["shop"="tyres"]',
-  '["shop"="boat"]',
-  '["amenity"="car_wash"]',
-  '["amenity"="car_rental"]',
-  '["amenity"="fuel"]',
-
-  // Hospitality — independent hotels/motels/B&Bs
-  '["tourism"="hotel"]',
-  '["tourism"="motel"]',
-  '["tourism"="guest_house"]',
-  '["tourism"="hostel"]',
-  '["tourism"="apartment"]',
-
-  // Food & beverage — independents
-  '["amenity"="restaurant"]',
-  '["amenity"="cafe"]',
-  '["amenity"="bar"]',
-  '["amenity"="pub"]',
-  '["amenity"="ice_cream"]',
-  '["amenity"="biergarten"]',
-  '["shop"="bakery"]',
-  '["shop"="butcher"]',
-  '["shop"="confectionery"]',
-  '["shop"="cheese"]',
-  '["shop"="seafood"]',
-  '["shop"="wine"]',
-  '["shop"="alcohol"]',
-
-  // Personal services
-  '["amenity"="funeral_hall"]',
-  '["shop"="dry_cleaning"]',
-  '["shop"="laundry"]',
-  '["shop"="hairdresser"]',
-  '["shop"="beauty"]',
-  '["shop"="tattoo"]',
-  '["shop"="optician"]',
-  '["shop"="florist"]',
-
-  // Building / home / hardware
-  '["shop"="hardware"]',
-  '["shop"="doityourself"]',
-  '["shop"="trade"]',
-  '["shop"="tool_hire"]',
-  '["shop"="hvac"]',
-  '["shop"="paint"]',
-  '["shop"="tile"]',
-  '["shop"="kitchen"]',
-  '["shop"="bathroom_furnishing"]',
-  '["shop"="garden_centre"]',
-  '["shop"="appliance"]',
-  '["shop"="furniture"]',
-  '["shop"="houseware"]',
-  '["shop"="lighting"]',
-  '["shop"="flooring"]',
-  '["shop"="carpet"]',
-
-  // Specialty retail — single-owner-friendly
-  '["shop"="jewelry"]',
-  '["shop"="art"]',
-  '["shop"="antiques"]',
-  '["shop"="music"]',
-  '["shop"="musical_instrument"]',
-  '["shop"="bicycle"]',
-  '["shop"="sports"]',
-  '["shop"="outdoor"]',
-  '["shop"="hunting"]',
-  '["shop"="fishing"]',
-  '["shop"="firearm"]',
-  '["shop"="hobby"]',
-  '["shop"="books"]',
-  '["shop"="stationery"]',
-  '["shop"="toys"]',
-  '["shop"="games"]',
-  '["shop"="pet"]',
-  '["shop"="pet_grooming"]',
-  '["shop"="electronics"]',
-  '["shop"="computer"]',
-  '["shop"="mobile_phone"]',
-  '["shop"="camera"]',
-  '["shop"="watches"]',
-  '["shop"="clothes"]',
-  '["shop"="shoes"]',
-  '["shop"="bag"]',
-  '["shop"="leather"]',
-  '["shop"="fabric"]',
-  '["shop"="sewing"]',
-  '["shop"="frame"]',
-  '["shop"="storage_rental"]',
+  '["shop"]',
+  // Food service, auto services, personal services, independent medical
+  '["amenity"~"^(restaurant|cafe|bar|pub|fast_food|ice_cream|biergarten|fuel|car_wash|car_rental|funeral_hall|veterinary|dentist|doctors|clinic|pharmacy)$"]',
+  // Independent hospitality
+  '["tourism"~"^(hotel|motel|guest_house|hostel|apartment)$"]',
 ];
 
 export async function overpass(
@@ -328,7 +232,7 @@ export async function overpass(
   const around = `(around:${Math.round(radiusM)},${lat},${lng})`;
   const filters = PROSPECT_TAG_FILTERS.map((f) => `nwr${f}${around};`).join("\n  ");
   const body =
-    `[out:json][timeout:25];\n(\n  ${filters}\n);\nout center tags;`;
+    `[out:json][timeout:60];\n(\n  ${filters}\n);\nout center tags;`;
   const res = await fetch("https://overpass-api.de/api/interpreter", {
     method: "POST",
     headers: {
