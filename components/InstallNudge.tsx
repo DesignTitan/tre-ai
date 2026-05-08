@@ -96,7 +96,7 @@ export function InstallNudge({ onContinue }: Props) {
           ) : (
             <>
               <div className="mb-4 flex justify-center">
-                <AppIconBadge />
+                <Mark />
               </div>
 
               <div className="text-[10px] text-accent font-semibold tracking-cadence uppercase text-center">
@@ -168,17 +168,17 @@ export function InstallNudge({ onContinue }: Props) {
   );
 }
 
-function AppIconBadge() {
+function Mark() {
   return (
-    <div className="relative">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/icon.png"
-        alt="tre.ai app icon"
-        width={88}
-        height={88}
-        className="w-[88px] h-[88px] rounded-[20px] object-cover shadow-[0_8px_24px_rgba(16,20,24,.18),0_2px_6px_rgba(16,20,24,.10)]"
-      />
+    <div className="relative w-[88px] h-[88px]">
+      <svg viewBox="0 0 88 88" className="absolute inset-0">
+        <g transform="translate(44 44)">
+          <circle r={6} fill="none" stroke="#1F4E5F" strokeWidth="1.4" strokeDasharray="4 4" className="welcome-pulse" />
+          <circle r={6} fill="none" stroke="#1F4E5F" strokeWidth="1.4" strokeDasharray="4 4" className="welcome-pulse" style={{ animationDelay: "1.5s" }} />
+          <circle r={5} fill="#101418" />
+          <circle r={11} fill="none" stroke="#101418" strokeWidth="1.6" />
+        </g>
+      </svg>
     </div>
   );
 }
