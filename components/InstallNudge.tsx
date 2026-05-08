@@ -83,6 +83,7 @@ export function InstallNudge({ onContinue }: Props) {
         onClick={(e) => e.stopPropagation()}
         className="
           w-full sm:max-w-[400px]
+          min-h-[64vh] sm:min-h-0
           bg-bg rounded-t-3xl sm:rounded-3xl
           shadow-cta relative overflow-hidden
           welcome-fade
@@ -90,7 +91,7 @@ export function InstallNudge({ onContinue }: Props) {
         style={{ animationDelay: "0ms" }}
       >
         <div className="welcome-bg" aria-hidden />
-        <div className="relative px-7 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+        <div className="relative px-7 pt-9 pb-[calc(2rem+env(safe-area-inset-bottom))] flex flex-col min-h-[64vh] sm:min-h-0">
           {iosSteps ? (
             <IOSSteps onContinue={() => onContinue(true)} />
           ) : (
@@ -128,31 +129,6 @@ export function InstallNudge({ onContinue }: Props) {
                 </svg>
               </button>
 
-              <label className="mt-4 flex items-center gap-2.5 cursor-pointer select-none">
-                <span className="relative flex-none">
-                  <input
-                    type="checkbox"
-                    checked={dontShowAgain}
-                    onChange={(e) => setDontShowAgain(e.target.checked)}
-                    className="peer sr-only"
-                  />
-                  <span className="
-                    block w-4 h-4 rounded
-                    border border-rule bg-card
-                    peer-checked:bg-ink peer-checked:border-ink
-                    transition-colors
-                  " />
-                  <svg
-                    viewBox="0 0 16 16"
-                    className="absolute inset-0 w-4 h-4 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity"
-                    fill="none"
-                  >
-                    <path d="M3.5 8.5L7 12l5.5-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </span>
-                <span className="text-[12px] text-ink2 font-medium">Don&apos;t show this message again</span>
-              </label>
-
               <button
                 type="button"
                 onClick={handleDismiss}
@@ -160,6 +136,33 @@ export function InstallNudge({ onContinue }: Props) {
               >
                 Maybe later
               </button>
+
+              <div className="mt-auto pt-6 flex justify-center">
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <span className="relative flex-none">
+                    <input
+                      type="checkbox"
+                      checked={dontShowAgain}
+                      onChange={(e) => setDontShowAgain(e.target.checked)}
+                      className="peer sr-only"
+                    />
+                    <span className="
+                      block w-4 h-4 rounded
+                      border border-rule bg-card
+                      peer-checked:bg-ink peer-checked:border-ink
+                      transition-colors
+                    " />
+                    <svg
+                      viewBox="0 0 16 16"
+                      className="absolute inset-0 w-4 h-4 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity"
+                      fill="none"
+                    >
+                      <path d="M3.5 8.5L7 12l5.5-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                  <span className="text-[12px] text-ink2 font-medium">Don&apos;t show this message again</span>
+                </label>
+              </div>
             </>
           )}
         </div>
