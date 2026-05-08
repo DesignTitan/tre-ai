@@ -36,8 +36,8 @@ export function TabBar() {
         pt-2.5
         pb-[max(1.5rem,env(safe-area-inset-bottom))]
         border-t border-rule
-        bg-bg/90 backdrop-blur
-        z-30
+        bg-bg/95 backdrop-blur
+        z-[1100]
       "
     >
       {TABS.map(t => {

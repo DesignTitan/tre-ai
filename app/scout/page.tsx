@@ -363,7 +363,7 @@ function SplitSheet({
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] flex flex-col gap-2.5 mt-1">
+      <div className="flex-1 overflow-y-auto px-6 pt-3 pb-[calc(5rem+env(safe-area-inset-bottom))] flex flex-col gap-2.5 mt-1">
         {prospects.length === 0 ? (
           <EmptyState radius={radius} nearest={nearest} />
         ) : (
