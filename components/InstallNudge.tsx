@@ -32,11 +32,13 @@ export function useInstallNudge() {
     }
   }, [mounted, available]);
 
-  function dismiss() {
-    try {
-      localStorage.setItem(DISMISS_KEY, "1");
-    } catch {
-      // private browsing / quota — ok, just don't persist
+  function dismiss(persist = false) {
+    if (persist) {
+      try {
+        localStorage.setItem(DISMISS_KEY, "1");
+      } catch {
+        // private browsing / quota — ok, just don't persist
+      }
     }
     setShouldShow(false);
   }
@@ -45,13 +47,14 @@ export function useInstallNudge() {
 }
 
 interface Props {
-  onContinue: () => void;
+  onContinue: (persist: boolean) => void;
 }
 
 export function InstallNudge({ onContinue }: Props) {
   const { install, isIOS } = usePWAInstall();
   const [iosSteps, setIosSteps] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
 
   async function handleInstall() {
     setBusy(true);
@@ -60,8 +63,12 @@ export function InstallNudge({ onContinue }: Props) {
     if (result === "ios-instructions") {
       setIosSteps(true);
     } else if (result === "accepted") {
-      onContinue();
+      onContinue(true);
     }
+  }
+
+  function handleDismiss() {
+    onContinue(dontShowAgain);
   }
 
   return (
@@ -70,7 +77,7 @@ export function InstallNudge({ onContinue }: Props) {
       aria-modal="true"
       aria-label="Save to home screen"
       className="fixed inset-0 z-[2000] bg-ink/55 backdrop-blur-sm flex items-end sm:items-center justify-center"
-      onClick={onContinue}
+      onClick={handleDismiss}
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -85,60 +92,29 @@ export function InstallNudge({ onContinue }: Props) {
         <div className="welcome-bg" aria-hidden />
         <div className="relative px-7 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
           {iosSteps ? (
-            <IOSSteps onContinue={onContinue} />
+            <IOSSteps onContinue={() => onContinue(true)} />
           ) : (
             <>
-              <div className="mb-5 flex justify-center">
-                <Mark />
+              <div className="mb-4 flex justify-center">
+                <AppIconBadge />
               </div>
 
               <div className="text-[10px] text-accent font-semibold tracking-cadence uppercase text-center">
-                Optimal experience
+                For the best experience
               </div>
-              <h2 className="text-center text-[26px] font-semibold tracking-tighter leading-[1.05] mt-1.5 text-ink">
-                Save <span className="text-ink">tre</span><span className="text-accent">.ai</span> to your<br />home screen
+              <h2 className="text-center text-[24px] font-semibold tracking-tighter leading-[1.1] mt-1.5 text-ink">
+                Save <span className="text-ink">tre</span><span className="text-accent">.ai</span> to your home screen
               </h2>
-              <p className="text-center text-[13px] text-ink2 leading-[1.45] mt-3 max-w-[300px] mx-auto">
-                Two taps and you&apos;re running fullscreen — no browser chrome, no URL bar, faster launches when you&apos;re in the field.
+              <p className="text-center text-[13px] text-ink2 leading-[1.45] mt-2 max-w-[300px] mx-auto">
+                Fullscreen, no browser chrome, faster launches in the field.
               </p>
-
-              <ul className="mt-5 flex flex-col gap-2.5">
-                <Bullet
-                  icon={
-                    <svg viewBox="0 0 24 24" fill="none">
-                      <path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-                    </svg>
-                  }
-                  title="Fullscreen, no chrome"
-                  text="Real estate the address bar used to take is yours."
-                />
-                <Bullet
-                  icon={
-                    <svg viewBox="0 0 24 24" fill="none">
-                      <path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-                    </svg>
-                  }
-                  title="Faster launches"
-                  text="One tap from your home screen, no Safari load step."
-                />
-                <Bullet
-                  icon={
-                    <svg viewBox="0 0 24 24" fill="none">
-                      <path d="M12 21s7-7.5 7-13a7 7 0 1 0-14 0c0 5.5 7 13 7 13z" stroke="currentColor" strokeWidth="1.6" />
-                      <circle cx="12" cy="8.5" r="2.5" stroke="currentColor" strokeWidth="1.6" />
-                    </svg>
-                  }
-                  title="Right where you need it"
-                  text="Walk into a city, pull up tre.ai, scout in seconds."
-                />
-              </ul>
 
               <button
                 type="button"
                 disabled={busy}
                 onClick={handleInstall}
                 className="
-                  mt-6 w-full bg-ink text-white rounded-2xl p-4
+                  mt-5 w-full bg-ink text-white rounded-2xl p-4
                   flex justify-between items-center font-semibold
                   shadow-cta active:scale-[.98] transition-transform
                   disabled:opacity-60 disabled:scale-100
@@ -152,10 +128,35 @@ export function InstallNudge({ onContinue }: Props) {
                 </svg>
               </button>
 
+              <label className="mt-4 flex items-center gap-2.5 cursor-pointer select-none">
+                <span className="relative flex-none">
+                  <input
+                    type="checkbox"
+                    checked={dontShowAgain}
+                    onChange={(e) => setDontShowAgain(e.target.checked)}
+                    className="peer sr-only"
+                  />
+                  <span className="
+                    block w-4 h-4 rounded
+                    border border-rule bg-card
+                    peer-checked:bg-ink peer-checked:border-ink
+                    transition-colors
+                  " />
+                  <svg
+                    viewBox="0 0 16 16"
+                    className="absolute inset-0 w-4 h-4 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity"
+                    fill="none"
+                  >
+                    <path d="M3.5 8.5L7 12l5.5-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                <span className="text-[12px] text-ink2 font-medium">Don&apos;t show this message again</span>
+              </label>
+
               <button
                 type="button"
-                onClick={onContinue}
-                className="mt-2.5 w-full text-center text-[12px] text-mute font-medium py-2 hover:text-ink2 transition-colors"
+                onClick={handleDismiss}
+                className="mt-3 w-full text-center text-[12px] text-mute font-medium py-2 hover:text-ink2 transition-colors"
               >
                 Maybe later
               </button>
@@ -167,31 +168,17 @@ export function InstallNudge({ onContinue }: Props) {
   );
 }
 
-function Bullet({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
+function AppIconBadge() {
   return (
-    <li className="flex items-start gap-3">
-      <span className="flex-none w-7 h-7 rounded-lg bg-accent/[.10] text-accent flex items-center justify-center mt-px [&>svg]:w-[18px] [&>svg]:h-[18px]">
-        {icon}
-      </span>
-      <div className="flex-1 min-w-0">
-        <div className="text-[13px] font-semibold tracking-tight2 text-ink leading-tight">{title}</div>
-        <div className="text-[11.5px] text-ink2 leading-snug mt-px">{text}</div>
-      </div>
-    </li>
-  );
-}
-
-function Mark() {
-  return (
-    <div className="relative w-[88px] h-[88px]">
-      <svg viewBox="0 0 88 88" className="absolute inset-0">
-        <g transform="translate(44 44)">
-          <circle r={6} fill="none" stroke="#1F4E5F" strokeWidth="1.4" strokeDasharray="4 4" className="welcome-pulse" />
-          <circle r={6} fill="none" stroke="#1F4E5F" strokeWidth="1.4" strokeDasharray="4 4" className="welcome-pulse" style={{ animationDelay: "1.5s" }} />
-          <circle r={5} fill="#101418" />
-          <circle r={11} fill="none" stroke="#101418" strokeWidth="1.6" />
-        </g>
-      </svg>
+    <div className="relative">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/icon.png"
+        alt="tre.ai app icon"
+        width={88}
+        height={88}
+        className="w-[88px] h-[88px] rounded-[20px] object-cover shadow-[0_8px_24px_rgba(16,20,24,.18),0_2px_6px_rgba(16,20,24,.10)]"
+      />
     </div>
   );
 }
