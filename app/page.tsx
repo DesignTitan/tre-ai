@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { InstallButton } from "@/components/InstallButton";
 
 export default function WelcomePage() {
   return (
@@ -53,9 +54,13 @@ export default function WelcomePage() {
             </Link>
           </div>
 
+          <div className="welcome-fade mt-3" style={{ animationDelay: "560ms" }}>
+            <InstallButton />
+          </div>
+
           <div
             className="welcome-fade mt-4 flex items-center gap-2 text-[10px] text-mute font-medium tracking-[.04em] uppercase"
-            style={{ animationDelay: "620ms" }}
+            style={{ animationDelay: "680ms" }}
           >
             <span>Free public data</span>
             <span className="opacity-40">·</span>
