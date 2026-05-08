@@ -338,27 +338,30 @@ function SplitSheet({
         aria-valuenow={Math.round(heightPct)}
         aria-valuemin={12}
         aria-valuemax={95}
+        tabIndex={0}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        className="flex justify-center pt-2.5 pb-2 -mb-1 cursor-grab active:cursor-grabbing select-none touch-none"
+        className="cursor-grab active:cursor-grabbing select-none touch-none"
         style={{ WebkitUserSelect: "none" }}
       >
-        <span className="block w-10 h-1 bg-ink/15 rounded-full pointer-events-none" />
-      </div>
+        <div className="flex justify-center pt-2.5 pb-2.5 -mb-0.5">
+          <span className="block w-12 h-[5px] bg-ink/20 rounded-full pointer-events-none" />
+        </div>
 
-      <div className="px-6 pt-1 pb-2 flex items-baseline justify-between gap-3">
-        <h3 className="text-[20px] font-semibold tracking-tightx text-ink leading-tight">
-          {prospects.length} prospects
-        </h3>
-        <span className="text-[10px] text-mute font-medium tracking-[.04em] uppercase">
-          {radius} mi radius
-        </span>
+        <div className="px-6 pt-1 pb-2 flex items-baseline justify-between gap-3 pointer-events-none">
+          <h3 className="text-[20px] font-semibold tracking-tightx text-ink leading-tight">
+            {prospects.length} prospects
+          </h3>
+          <span className="text-[10px] text-mute font-medium tracking-[.04em] uppercase">
+            {radius} mi radius
+          </span>
+        </div>
+        <p className="px-6 pb-3 text-[11px] text-mute leading-snug pointer-events-none">
+          Pan the map to scan the area. Tap a card or marker to highlight.
+        </p>
       </div>
-      <p className="px-6 text-[11px] text-mute leading-snug">
-        Pan the map to scan the area. Tap a card or marker to highlight.
-      </p>
 
       <div className="flex-1 overflow-y-auto px-6 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] flex flex-col gap-2.5 mt-1">
         {prospects.length === 0 ? (
