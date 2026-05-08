@@ -14,31 +14,76 @@ import type { Prospect, Signal } from "../types";
 import { provisionalScore } from "./score";
 
 const KNOWN_CHAINS = new Set<string>([
-  "midas",
-  "jiffy lube",
-  "valvoline",
-  "meineke",
-  "monro",
-  "discount tire",
-  "firestone",
-  "pep boys",
-  "h&r block",
-  "jackson hewitt",
-  "edward jones",
-  "state farm",
-  "allstate",
-  "geico",
-  "farmers insurance",
-  "merry maids",
-  "stanley steemer",
-  "servpro",
-  "molly maid",
-  "the home depot",
-  "home depot",
-  "lowe's",
-  "lowes",
-  "ace hardware",
-  "true value",
+  // Auto / tires / oil
+  "midas", "jiffy lube", "valvoline", "meineke", "monro", "discount tire",
+  "firestone", "pep boys", "goodyear", "aamco", "big o tires", "tire kingdom",
+  "mavis", "ntb", "tires plus", "les schwab",
+  // Tax / insurance / financial
+  "h&r block", "jackson hewitt", "liberty tax",
+  "edward jones", "state farm", "allstate", "geico", "farmers insurance",
+  "progressive", "nationwide", "american family", "liberty mutual",
+  // Home services
+  "merry maids", "stanley steemer", "servpro", "molly maid", "chem-dry",
+  "rainbow international", "two men and a truck",
+  // Home improvement / hardware
+  "the home depot", "home depot", "lowe's", "lowes", "ace hardware", "true value",
+  "menards", "harbor freight", "tractor supply",
+  // Big-box / dept
+  "walmart", "target", "kmart", "sears", "kohl's", "kohls", "macy's", "macys",
+  "tj maxx", "marshalls", "ross", "burlington", "old navy", "gap", "banana republic",
+  "best buy", "costco", "sam's club", "sams club", "bj's wholesale",
+  // Pet
+  "petsmart", "petco", "pet supplies plus",
+  // Pharmacy
+  "walgreens", "cvs", "rite aid",
+  // Fast food
+  "mcdonald's", "mcdonalds", "burger king", "wendy's", "wendys", "subway",
+  "taco bell", "kfc", "popeyes", "chick-fil-a", "chickfila", "dairy queen",
+  "arby's", "arbys", "sonic", "carl's jr", "hardee's", "jack in the box",
+  "five guys", "shake shack", "in-n-out", "in n out", "white castle",
+  "panera", "panera bread", "chipotle", "qdoba", "moe's", "moes southwest",
+  "domino's", "dominos", "pizza hut", "papa john's", "papa johns",
+  "little caesars", "papa murphy's", "marco's pizza",
+  "starbucks", "dunkin", "dunkin' donuts", "tim hortons", "krispy kreme",
+  "baskin-robbins", "cold stone creamery", "ben & jerry's",
+  "ihop", "denny's", "dennys", "applebee's", "applebees",
+  "olive garden", "outback steakhouse", "longhorn", "red lobster",
+  "buffalo wild wings", "tgi friday's", "chili's", "chilis",
+  "cracker barrel", "waffle house", "perkins", "bob evans",
+  // Convenience / gas
+  "7-eleven", "7 eleven", "circle k", "wawa", "sheetz", "speedway",
+  "casey's", "casey's general store", "cumberland farms", "cumby's",
+  "shell", "exxon", "exxonmobil", "mobil", "bp", "chevron", "marathon",
+  "valero", "76", "phillips 66", "sunoco", "citgo", "arco", "conoco",
+  // Hotels (chain branded)
+  "holiday inn", "hampton inn", "comfort inn", "comfort suites",
+  "fairfield inn", "courtyard by marriott", "marriott", "hilton",
+  "hampton by hilton", "hyatt", "hyatt place", "best western",
+  "super 8", "days inn", "motel 6", "extended stay america", "la quinta",
+  "ramada", "quality inn", "sleep inn", "tru by hilton",
+  "homewood suites", "embassy suites", "doubletree", "residence inn",
+  "townplace suites", "springhill suites", "wingate", "country inn",
+  "marriott bonvoy",
+  // Telecom / electronics
+  "verizon", "verizon wireless", "at&t", "t-mobile", "tmobile",
+  "sprint", "metropcs", "metro by t-mobile", "boost mobile", "cricket wireless",
+  // Apparel / specialty
+  "lululemon", "nike", "adidas", "under armour", "champion sports",
+  "victoria's secret", "victorias secret", "bath & body works",
+  "claire's", "claires", "build-a-bear",
+  // Coffee / juice / smoothie
+  "jamba juice", "smoothie king", "tropical smoothie", "biggby coffee",
+  "caribou coffee", "peet's coffee",
+  // Other common
+  "gnc", "supplements plus", "vitamin shoppe",
+  "anytime fitness", "planet fitness", "snap fitness", "orange theory",
+  "supercuts", "great clips", "sport clips",
+  "ymca", "ywca",
+  "u-haul", "uhaul", "penske", "ryder",
+  "fedex", "fedex office", "ups store", "the ups store",
+  "kinko's", "kinkos",
+  "starbucks reserve",
+  "dollar tree", "dollar general", "family dollar", "five below", "99 cents only",
 ]);
 
 function isLikelyChain(name: string): boolean {
@@ -48,10 +93,40 @@ function isLikelyChain(name: string): boolean {
   return false;
 }
 
+const AMENITY_LABELS: Record<string, string> = {
+  restaurant: "Restaurant",
+  cafe: "Café",
+  bar: "Bar",
+  pub: "Pub",
+  fast_food: "Quick service",
+  ice_cream: "Ice cream",
+  biergarten: "Beer garden",
+  fuel: "Gas station",
+  car_wash: "Car wash",
+  car_rental: "Car rental",
+  funeral_hall: "Funeral home",
+  veterinary: "Veterinary clinic",
+  dentist: "Dental practice",
+  doctors: "Medical practice",
+  clinic: "Medical clinic",
+  pharmacy: "Pharmacy",
+};
+
+const TOURISM_LABELS: Record<string, string> = {
+  hotel: "Hotel",
+  motel: "Motel",
+  guest_house: "Guest house",
+  hostel: "Hostel",
+  apartment: "Short-term rental",
+};
+
 function industryFromTags(tags: Record<string, string>): string {
   if (tags.craft) return cap(tags.craft.replace(/_/g, " "));
   if (tags.shop) return cap(tags.shop.replace(/_/g, " "));
   if (tags.office) return `${cap(tags.office)} (office)`;
+  if (tags.healthcare) return `${cap(tags.healthcare.replace(/_/g, " "))} (healthcare)`;
+  if (tags.amenity && AMENITY_LABELS[tags.amenity]) return AMENITY_LABELS[tags.amenity];
+  if (tags.tourism && TOURISM_LABELS[tags.tourism]) return TOURISM_LABELS[tags.tourism];
   if (tags.industrial) return cap(tags.industrial.replace(/_/g, " "));
   if (tags["man_made"] === "works") return "Manufacturing";
   return "Business";

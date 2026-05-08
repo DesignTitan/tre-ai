@@ -153,29 +153,49 @@ export async function suggestPlaces(query: string, limit = 6): Promise<PlaceSugg
 
 export async function geocode(query: string): Promise<GeocodeHit | null> {
   const trimmed = query.trim();
+  const isZip = /^\d{5}(-\d{4})?$/.test(trimmed);
   const candidates = [trimmed, trimmed.replace(/\s+/g, " ").replace(/,\s*/g, ", ")];
   if (trimmed.includes(",")) {
     candidates.push(trimmed.replace(/,\s*/g, " "));
   }
-  const isZip = /^\d{5}(-\d{4})?$/.test(trimmed);
+  if (isZip) {
+    candidates.push(`${trimmed}, USA`);
+  }
   let arr: Awaited<ReturnType<typeof nominatimSearch>> = [];
   for (const q of [...new Set(candidates)]) {
     arr = await nominatimSearch(q);
     if (arr.length) break;
   }
-  if (!arr.length) return null;
-  const hit = arr[0];
-  const type: GeocodeHit["type"] = isZip
-    ? "zip"
-    : hit.addresstype === "city" || hit.addresstype === "town" || hit.addresstype === "village"
-      ? "city"
-      : "address";
-  return {
-    displayName: hit.display_name,
-    lat: Number(hit.lat),
-    lng: Number(hit.lon),
-    type,
-  };
+  if (arr.length) {
+    const hit = arr[0];
+    const type: GeocodeHit["type"] = isZip
+      ? "zip"
+      : hit.addresstype === "city" || hit.addresstype === "town" || hit.addresstype === "village"
+        ? "city"
+        : "address";
+    return {
+      displayName: hit.display_name,
+      lat: Number(hit.lat),
+      lng: Number(hit.lon),
+      type,
+    };
+  }
+
+  // Fallback: Photon (better for ZIPs and prefix queries)
+  const photon = await suggestPlaces(trimmed, 1);
+  if (photon.length) {
+    const p = photon[0];
+    const splitAll = (s: string) => s.split(/[,·]/).map(x => x.trim()).filter(Boolean);
+    const parts = [...splitAll(p.title), ...splitAll(p.subtitle)];
+    const cleanDisplay = [...new Set(parts)].filter(s => !/^ZIP$/i.test(s)).join(", ");
+    return {
+      displayName: cleanDisplay,
+      lat: p.lat,
+      lng: p.lng,
+      type: p.type,
+    };
+  }
+  return null;
 }
 
 export interface OverpassElement {
@@ -188,23 +208,116 @@ export interface OverpassElement {
 }
 
 const PROSPECT_TAG_FILTERS = [
+  // Skilled trades — strongest exit-readiness signal
   '["craft"]',
-  '["shop"="trade"]',
-  '["shop"="car_repair"]',
-  '["shop"="tyres"]',
-  '["shop"="tool_hire"]',
-  '["shop"="hvac"]',
-  '["shop"="hardware"]',
-  '["shop"="doityourself"]',
-  '["office"="accountant"]',
-  '["office"="lawyer"]',
-  '["office"="insurance"]',
-  '["office"="engineer"]',
-  '["office"="architect"]',
-  '["office"="financial"]',
-  '["office"="company"]',
+
+  // Industrial / manufacturing
   '["industrial"]',
   '["man_made"="works"]',
+
+  // Professional services — owner-led practices
+  '["office"]',
+
+  // Healthcare — independent practices (dental, optometry, chiropractic, vet, etc.)
+  '["healthcare"]',
+  '["amenity"="dentist"]',
+  '["amenity"="doctors"]',
+  '["amenity"="clinic"]',
+  '["amenity"="veterinary"]',
+  '["amenity"="pharmacy"]',
+
+  // Auto-related
+  '["shop"="car_repair"]',
+  '["shop"="car"]',
+  '["shop"="motorcycle"]',
+  '["shop"="tyres"]',
+  '["shop"="boat"]',
+  '["amenity"="car_wash"]',
+  '["amenity"="car_rental"]',
+  '["amenity"="fuel"]',
+
+  // Hospitality — independent hotels/motels/B&Bs
+  '["tourism"="hotel"]',
+  '["tourism"="motel"]',
+  '["tourism"="guest_house"]',
+  '["tourism"="hostel"]',
+  '["tourism"="apartment"]',
+
+  // Food & beverage — independents
+  '["amenity"="restaurant"]',
+  '["amenity"="cafe"]',
+  '["amenity"="bar"]',
+  '["amenity"="pub"]',
+  '["amenity"="ice_cream"]',
+  '["amenity"="biergarten"]',
+  '["shop"="bakery"]',
+  '["shop"="butcher"]',
+  '["shop"="confectionery"]',
+  '["shop"="cheese"]',
+  '["shop"="seafood"]',
+  '["shop"="wine"]',
+  '["shop"="alcohol"]',
+
+  // Personal services
+  '["amenity"="funeral_hall"]',
+  '["shop"="dry_cleaning"]',
+  '["shop"="laundry"]',
+  '["shop"="hairdresser"]',
+  '["shop"="beauty"]',
+  '["shop"="tattoo"]',
+  '["shop"="optician"]',
+  '["shop"="florist"]',
+
+  // Building / home / hardware
+  '["shop"="hardware"]',
+  '["shop"="doityourself"]',
+  '["shop"="trade"]',
+  '["shop"="tool_hire"]',
+  '["shop"="hvac"]',
+  '["shop"="paint"]',
+  '["shop"="tile"]',
+  '["shop"="kitchen"]',
+  '["shop"="bathroom_furnishing"]',
+  '["shop"="garden_centre"]',
+  '["shop"="appliance"]',
+  '["shop"="furniture"]',
+  '["shop"="houseware"]',
+  '["shop"="lighting"]',
+  '["shop"="flooring"]',
+  '["shop"="carpet"]',
+
+  // Specialty retail — single-owner-friendly
+  '["shop"="jewelry"]',
+  '["shop"="art"]',
+  '["shop"="antiques"]',
+  '["shop"="music"]',
+  '["shop"="musical_instrument"]',
+  '["shop"="bicycle"]',
+  '["shop"="sports"]',
+  '["shop"="outdoor"]',
+  '["shop"="hunting"]',
+  '["shop"="fishing"]',
+  '["shop"="firearm"]',
+  '["shop"="hobby"]',
+  '["shop"="books"]',
+  '["shop"="stationery"]',
+  '["shop"="toys"]',
+  '["shop"="games"]',
+  '["shop"="pet"]',
+  '["shop"="pet_grooming"]',
+  '["shop"="electronics"]',
+  '["shop"="computer"]',
+  '["shop"="mobile_phone"]',
+  '["shop"="camera"]',
+  '["shop"="watches"]',
+  '["shop"="clothes"]',
+  '["shop"="shoes"]',
+  '["shop"="bag"]',
+  '["shop"="leather"]',
+  '["shop"="fabric"]',
+  '["shop"="sewing"]',
+  '["shop"="frame"]',
+  '["shop"="storage_rental"]',
 ];
 
 export async function overpass(

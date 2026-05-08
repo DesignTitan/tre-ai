@@ -130,13 +130,7 @@ function ScoutInner() {
         </div>
       )}
 
-      {loading && (
-        <div className="px-6 py-8 text-center text-mute text-[13px]">
-          <div className="inline-block w-5 h-5 border-2 border-ink/20 border-t-ink rounded-full animate-spin mb-2" />
-          <div>Querying OpenStreetMap…</div>
-          <div className="text-[11px] mt-1 opacity-70">First crawl of a city can take 5–15 seconds</div>
-        </div>
-      )}
+      {loading && <CrawlLoader />}
 
       {data && !loading && (
         <div className="flex-1 flex flex-col min-h-0">
@@ -245,6 +239,72 @@ function SelectedSheet({ prospect, onClose }: { prospect: Prospect; onClose: () 
         >
           ×
         </button>
+      </div>
+    </div>
+  );
+}
+
+function CrawlLoader() {
+  const [elapsed, setElapsed] = useState(0);
+  const startRef = useRef(performance.now());
+
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      setElapsed((performance.now() - startRef.current) / 1000);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  // Asymptotic progress — approaches but never reaches 100% until response lands.
+  // tau = 5s => 63% at 5s, 86% at 10s, 95% at 15s.
+  const progress = Math.min(0.92, 1 - Math.exp(-elapsed / 5));
+
+  const stages: { from: number; label: string }[] = [
+    { from: 0, label: "Geocoding location" },
+    { from: 1.5, label: "Connecting to OpenStreetMap" },
+    { from: 3, label: "Scanning POIs in radius" },
+    { from: 7, label: "Filtering chains and franchises" },
+    { from: 11, label: "Sorting by exit-readiness" },
+    { from: 15, label: "Almost there" },
+  ];
+  const stage = [...stages].reverse().find(s => elapsed >= s.from)?.label ?? stages[0].label;
+
+  return (
+    <div className="px-6 pt-6 pb-8">
+      <div
+        role="progressbar"
+        aria-label="Crawl progress"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(progress * 100)}
+        className="relative h-1 w-full bg-black/[.06] rounded-full overflow-hidden"
+      >
+        <div
+          className="absolute inset-y-0 left-0 bg-ink rounded-full"
+          style={{ width: `${progress * 100}%` }}
+        />
+        <div className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/40 to-transparent crawl-shimmer" />
+      </div>
+
+      <div className="mt-4 flex items-baseline justify-between gap-3">
+        <div className="text-[13px] text-ink font-semibold tracking-tight2">
+          {stage}
+          <span className="inline-block ml-1 align-baseline">
+            <span className="crawl-dot crawl-dot-1">.</span>
+            <span className="crawl-dot crawl-dot-2">.</span>
+            <span className="crawl-dot crawl-dot-3">.</span>
+          </span>
+        </div>
+        <div className="text-[11px] text-mute font-medium tabular-nums">
+          {elapsed.toFixed(1)}s
+        </div>
+      </div>
+
+      <div className="mt-1 text-[11px] text-mute">
+        First crawl of a city can take 5–15 seconds.
       </div>
     </div>
   );

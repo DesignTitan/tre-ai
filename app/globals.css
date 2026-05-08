@@ -110,4 +110,28 @@ html, body {
   .welcome-fade { animation: none; opacity: 1; transform: none; }
   .welcome-pulse { animation: none; opacity: 0; }
   .screen-enter { animation: none; }
+  .crawl-shimmer { animation: none; }
+  .crawl-dot { animation: none; opacity: 1; }
 }
+
+/* Crawl loader — shimmer sweep + bouncing trailing dots */
+@keyframes crawl-shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+.crawl-shimmer {
+  animation: crawl-shimmer 1.6s linear infinite;
+}
+
+@keyframes crawl-dot-bob {
+  0%, 80%, 100% { opacity: 0.2; }
+  40%           { opacity: 1; }
+}
+.crawl-dot {
+  display: inline-block;
+  animation: crawl-dot-bob 1.2s ease-in-out infinite;
+  opacity: 0.2;
+}
+.crawl-dot-1 { animation-delay: 0s; }
+.crawl-dot-2 { animation-delay: 0.18s; }
+.crawl-dot-3 { animation-delay: 0.36s; }
