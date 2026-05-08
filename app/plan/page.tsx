@@ -65,7 +65,7 @@ export default function PlanTripPage() {
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Detroit, MI · 90210 · Cleveland Heights, OH"
+              placeholder="city or zip"
               className="flex-1 bg-transparent text-[16px] font-semibold text-ink placeholder:text-mute placeholder:font-medium outline-none tracking-tightx min-w-0"
               autoComplete="off"
               autoCorrect="off"
